@@ -13,7 +13,7 @@
 -- Description: Simulation only component for mimicking crank angle sensor pulsetrain output
 -------------------------------------------------------------------------------
 -- Notes:
--- 
+-- Working 10/16, needs global reset when 'rpm' changes to interrupt 'wait for's
 -------------------------------------------------------------------------------
 -- Revisions  :
 -- Date				Version	Author	Description
@@ -38,31 +38,32 @@ entity engine_sim is
 end engine_sim;
 
 architecture Behavioral of engine_sim is
-  
+	constant T : time := 1 us;
+	
   begin
   
   --Generates pulse train
   PULSE_GEN: process
-    variable tooth_period_us : real;   --Entire delay of tooth & gap in micro seconds
-    variable delay_high_us : real;     --Delay of solid tooth in micro seconds
-    variable delay_low_us : real;      --Delay of gap in microseconds
-    --variable i : integer := 0;  --Loop iterator
+    variable tooth_period_us : integer;   --Entire delay of tooth & gap in micro seconds
+    variable delay_high_us : integer;     --Delay of solid tooth in micro seconds
+    variable delay_low_us : integer;      --Delay of gap in microseconds
     
     begin
     --Variable assignemnts
-    tooth_period_us := (1000000.0) / real(rpm); 
-    delay_high_us := DUTY * tooth_period_us;
+    tooth_period_us := integer(ceil(1000000.0 / real(rpm))); 
+    delay_high_us := integer(ceil(DUTY * real(tooth_period_us)));
     delay_low_us := (tooth_period_us - delay_high_us);
-    
+
     -- 58 teeth and gaps
     for i in 1 to TEETH loop
       pulse_train <= '1';
-      wait for delay_high_us * 1us;
+      wait for delay_high_us * T;
       pulse_train <= '0';
-      wait for delay_low_us * 1us;
+      wait for delay_low_us * T;
     end loop;
     -- missing tooth
-    wait for delay_high_us * 1us * GAP_FACTOR;
+    wait for delay_high_us * T * GAP_FACTOR;
+		--wait;
   end process;
 	
 end Behavioral;

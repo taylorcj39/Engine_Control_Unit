@@ -15,6 +15,7 @@
 -------------------------------------------------------------------------------
 -- Notes:
 -- Add aditional generic for sclk frequency selection, add constant for 8bits of clk
+-- Currenlty has 2*288kHz inside, need to reformat so only counts once per sclk period
 -------------------------------------------------------------------------------
 -- Revisions  :
 -- Date				Version	Author	Description
@@ -56,7 +57,7 @@ architecture Behavioral of pulse_counter is
   signal y_count_toggle : std_logic := '0';
   
   signal sclk           : std_logic := '0';         --488kHz sampling clk
-  signal clk_q          : unsigned(8 - 1 downto 0) := (others => '0'); --Accumulator for clk_125M pulses
+  signal clk_q          : unsigned(9 - 1 downto 0) := (others => '0'); --Accumulator for clk_125M pulses
   
   --Register signals for pulse and sclk
   signal pulse_q      : std_logic := '0'; --registered pulse value
@@ -77,16 +78,15 @@ architecture Behavioral of pulse_counter is
     end if;    
   end if;   
   end process;
-  sclk <= clk_q(8 - 1);
+  sclk <= clk_q(9 - 1); --Slowed sclk down by half, currently counting on high and low
   
   --Coutners--------------------------------------------------------------------
   --Counter for 'high' pulses
   XCNT: process(clk_125M)
   begin
   if rising_edge(clk_125M) then             --Makes process synchronous
-      if (rst = '1') then                     --Always check clr
+      if (rst = '1' or x_count_rst = '1') then                     --Always check clr
         x_count <= (others => '0');
-        --toggle <= '0'; ??
       elsif (x_count_inc = '1' and x_count_toggle = '0') then
         x_count <= x_count + 1;
         x_count_toggle <= '1';
@@ -101,7 +101,7 @@ architecture Behavioral of pulse_counter is
   YCNT: process(clk_125M)
   begin
   if rising_edge(clk_125M) then             --Makes process synchronous
-      if (rst = '1') then                     --Always check clr
+      if (rst = '1'or y_count_rst = '1') then                     --Always check clr
         y_count <= (others => '0');
         --toggle <= '0'; ??
       elsif (y_count_inc = '1' and y_count_toggle = '0') then
@@ -116,7 +116,7 @@ architecture Behavioral of pulse_counter is
 	------------------------------------------------------------------------------
 	
 	--Registers-------------------------------------------------------------------
-	--Pulse Register
+	--Pulse Register, I think this can be eliminated 10/16
 	PREG : process(clk_125M)
 	begin
 	 if rising_edge(clk_125M) then
@@ -160,12 +160,18 @@ architecture Behavioral of pulse_counter is
           --Tooth sequence
           when tooth =>
             if (sclk = sclk_q) then
-              state <= tooth;
+            --if sclk = '0' then ??
+              if pulse_train = '1' then
+                state <= tooth;
+              else
+                state <= tooth_valid;
+              end if;
             else
+            --elsif (sclk /= sclk_q and sclk = '0') then ??
               state <= tooth_plus;
             end if;
           when tooth_plus =>
-            if (pulse_train = pulse_q) then
+            if pulse_train = '1' then
               state <= tooth;
             else
               state <= tooth_valid;
@@ -177,12 +183,16 @@ architecture Behavioral of pulse_counter is
           --Gap sequence  
           when gap =>
             if (sclk = sclk_q) then
-              state <= gap;
+              if pulse_train = '0' then
+                state <= gap;
+              else
+                state <= gap_valid;
+              end if;
             else
               state <= gap_plus;
             end if;
           when gap_plus =>
-            if (pulse_train = pulse_q) then
+            if pulse_train = '0' then
               state <= gap;
             else
               state <= gap_valid;
@@ -220,8 +230,9 @@ architecture Behavioral of pulse_counter is
       when tooth_valid =>
         x_valid <= '1';
       when tooth_rst =>
-        x_count_rst <= '0';  
+        x_count_rst <= '1';  
       when gap_plus =>
+        sclk_e <= '1';
         y_count_inc <= '1';
       when gap_valid =>
         y_valid <= '1';
