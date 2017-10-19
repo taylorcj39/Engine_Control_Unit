@@ -18,8 +18,9 @@
 -- Currenlty has 2*288kHz inside, need to reformat so only counts once per sclk period
 -------------------------------------------------------------------------------
 -- Revisions  :
--- Date				Version	Author	Description
--- 2017-10-14 1.0     CT      Created
+-- Date				 Version	Author    Description
+-- 2017-10-14  1.0      CT        Created
+-- 2017-18-18  1.1      CT        Doubled width of y to hold length of gap 
 -------------------------------------------------------------------------------
 
 library IEEE;
@@ -30,13 +31,13 @@ use IEEE.math_real.all;
 entity pulse_counter is
 	generic(WIDTH : integer := 8);
 	port (
-		clk_125M    : in	std_logic;                               --125Mhz master clock
-		rst	        : in	std_logic;                               --clr
-		pulse_train : in	std_logic;                               --pulse train from sensor
+		clk_125M    : in	std_logic;                      --125Mhz master clock
+		rst	        : in	std_logic;                      --global synchronous reset
+		pulse_train : in	std_logic;                      --pulse train from sensor
 		x           : out unsigned(WIDTH - 1 downto 0);   --high pulse width in samples
-		y           : out unsigned(WIDTH - 1 downto 0);   --low pulse width in samples
-		x_valid	    : out std_logic;                              --high pulse width ready to be read
-		y_valid	    : out std_logic                               --low pulse width ready to be read
+		y           : out unsigned((WIDTH * 2) - 1 downto 0);   --low pulse width in samples
+		x_valid	    : out std_logic;                      --high pulse width ready to be read
+		y_valid	    : out std_logic                       --low pulse width ready to be read
 	);
 end pulse_counter;
 
@@ -51,7 +52,7 @@ architecture Behavioral of pulse_counter is
   signal x_count_inc    : std_logic := '0';
   signal x_count_toggle : std_logic := '0';
   
-  signal y_count        : unsigned(WIDTH - 1 downto 0)  := (others => '0');
+  signal y_count        : unsigned((WIDTH * 2) - 1 downto 0)  := (others => '0');
   signal y_count_rst    : std_logic := '0';
   signal y_count_inc    : std_logic := '0';
   signal y_count_toggle : std_logic := '0';
