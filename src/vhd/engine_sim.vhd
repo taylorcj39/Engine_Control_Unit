@@ -49,13 +49,14 @@ architecture Behavioral of engine_sim is
     variable delay_low_us : integer;      --Delay of gap in microseconds
     
     begin
-    --Variable assignemnts
-    tooth_period_us := integer(ceil(1000000.0 / real(rpm))); 
-    delay_high_us := integer(ceil(DUTY * real(tooth_period_us)));
-    delay_low_us := (tooth_period_us - delay_high_us);
-
+   
     -- 58 teeth and gaps
     for i in 1 to TEETH loop
+      --Variable assignments
+      tooth_period_us := integer(ceil(1000000.0 / real(rpm))); 
+      delay_high_us := integer(ceil(DUTY * real(tooth_period_us)));
+      delay_low_us := (tooth_period_us - delay_high_us);
+      
       pulse_train <= '1';
       wait for delay_high_us * T;
       pulse_train <= '0';

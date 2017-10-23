@@ -101,10 +101,10 @@ architecture Behavioral of crank_angle_computer is
   
   --Internal Signals------------------------------------------------------------
   --Tooth Counter
-  signal tooth_count_inc    : std_logic;
-  signal tooth_count_rst    : std_logic;
-  signal tooth_count_toggle : std_logic;
-  signal tooth_count        : unsigned(TOOTH_COUNT_WIDTH - 1 downto 0);
+  signal tooth_count_inc    : std_logic := '0';
+  signal tooth_count_rst    : std_logic := '0';
+  signal tooth_count_toggle : std_logic := '0';
+  signal tooth_count        : unsigned(TOOTH_COUNT_WIDTH - 1 downto 0) := (others=> '0');
   
   --Pulse Counter
   signal x        : unsigned(WIDTH - 1 downto 0) := (others => '0');

@@ -60,12 +60,12 @@ architecture Behavioral of gap_synchronizer is
   
   --Internal Signals------------------------------------------------------------
   --gap
-  signal g        : unsigned(EXTRA_WIDTH - 1 downto 0); 
-  signal g_minus  : unsigned(EXTRA_WIDTH - 1 downto 0); --Lower bounds of tolerance for gap width
-  signal g_plus   : unsigned(EXTRA_WIDTH - 1 downto 0); --Upper bound of tolerance for gap width 
+  signal g        : unsigned(EXTRA_WIDTH - 1 downto 0) := (others => '0'); 
+  signal g_minus  : unsigned(EXTRA_WIDTH - 1 downto 0) := (others => '0'); --Lower bounds of tolerance for gap width
+  signal g_plus   : unsigned(EXTRA_WIDTH - 1 downto 0) := (others => '0'); --Upper bound of tolerance for gap width 
   --x & y registers
-  signal x_q      : unsigned(WIDTH - 1 downto 0);  --Internal registered value of x
-  signal y_q      : unsigned(EXTRA_WIDTH - 1 downto 0);  --Internal registered value of y
+  signal x_q      : unsigned(WIDTH - 1 downto 0)  := (others => '0');  --Internal registered value of x
+  signal y_q      : unsigned(EXTRA_WIDTH - 1 downto 0) := (others => '0');  --Internal registered value of y
   --signal x_e      : std_logic;  --x register load signal
   --signal y_e      : std_logic;  --y register load signal
   --tooth counter
@@ -118,13 +118,13 @@ architecture Behavioral of gap_synchronizer is
             state <= pre_sync;
           when pre_sync =>        --Gap has not been accurately identified yet
             --if tooth_count < TEETH then  --Ensures were not stuck here forever
-            if (g_minus <= y_q or y_q <= g_plus) then
+            if (g_minus <= y_q and y_q <= g_plus) then
               state <= sync_state;
             end if;
           when sync_state =>
             state <= post_sync;
           when post_sync =>       --Gap has been accurately identified
-            if unsigned(tooth_count) = TOOTH_CNT_MAX then
+            if unsigned(tooth_count) = TOOTH_CNT_MAX - 1 then
               state <= verify;
             end if;
           when verify =>          --Check to ensure we are still synced
@@ -145,13 +145,18 @@ architecture Behavioral of gap_synchronizer is
     --tooth_count_inc <= '0';
     tooth_count_rst <= '0';
     sync <= '0';
-    gap_present <= '1';
+    gap_present <= '0';
     case state is
       when reset_sync =>        --reset tooth counter, try to resync
         tooth_count_rst <= '1';   
       when sync_state =>        --System is in sync
         sync <= '1';
-      when verify =>             --Gap should be present
+        tooth_count_rst <= '1';
+      when post_sync =>
+        sync <= '1';
+      when verify =>             --Gap should be present, check
+        tooth_count_rst <= '1';
+        sync <= '1';
         gap_present <= '1';
       when others =>
         null;

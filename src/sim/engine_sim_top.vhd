@@ -52,17 +52,19 @@ architecture Behavioral of engine_sim_top is
     );
   end component;
   
-  --Pulse Counter (Will be replaced with entire angle_calculator later
-  component pulse_counter
-    generic(WIDTH : integer := 8);
+  --Crank Angle Computer Component
+  component crank_angle_computer
+    generic(
+      TEETH       : integer := 60 - 2;
+      WIDTH       : integer := 8;
+      GAP_FACTOR  : integer := 4
+    );
     port (
-      clk_125M    : in  std_logic;                      --125Mhz master clock
-      rst          : in  std_logic;                     --clr
-      pulse_train : in  std_logic;                      --pulse train from sensor
-      x           : out unsigned(WIDTH - 1 downto 0);   --high pulse width in samples
-      y           : out unsigned(WIDTH - 1 downto 0);   --low pulse width in samples
-      x_valid      : out std_logic;                     --high pulse width ready to be read
-      y_valid      : out std_logic                      --low pulse width ready to be read
+      clk_125M    : in std_logic;           --125Mhz master clock
+      rst         : in std_logic;           --global synchronous reset
+      pulse_train : in std_logic            --pulse train input from crank angle sensor
+      --tooth_count : out std_logic_vector(integer(ceil(log2(TEETH)))- 1 downto 0)
+      --angle       : out std_logic_vector;
     );
   end component;
   
@@ -75,7 +77,7 @@ architecture Behavioral of engine_sim_top is
   
   --Component Instantiation-----------------------------------------------------
   --Engine simulator
-  SIM : engine_sim
+  ENG_SIM : engine_sim
   generic map (TEETH => 60 - 2, GAP_FACTOR => 4, DUTY => 0.5)
   port map (
     clk_125M    => clk_125M,
@@ -86,16 +88,16 @@ architecture Behavioral of engine_sim_top is
   );
   
   --Pulse counter
-  PCNT : pulse_counter
-  generic map(WIDTH => 8)
+  ANGLE_CPU : crank_angle_computer
+  generic map (
+    TEETH      => 60-2,
+    WIDTH      => 8,
+    GAP_FACTOR => 5
+  )
   port map (
     clk_125M    => clk_125M,
     rst         => rst,
-    pulse_train => pulse_train,
-    x          => open,
-    y          => open,
-    x_valid    => open,
-    y_valid    => open
+    pulse_train => pulse_train
   );
   
 end Behavioral;
