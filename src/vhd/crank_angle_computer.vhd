@@ -19,6 +19,7 @@
 -- Revisions  :
 -- Date			    Version	  Author    Description
 -- 2017-10-17   1.0       CT        Created
+-- 2017-11-12   1.0       CT        Added angle counter (early revision) and synchronizer
 -------------------------------------------------------------------------------
 
 library IEEE;
@@ -27,7 +28,7 @@ use IEEE.numeric_std.all;
 use IEEE.math_real.all;
 
 entity crank_angle_computer is 
-  generic(
+  generic (
     TEETH       : integer := 60 - 2;
     WIDTH       : integer := 8;
     GAP_FACTOR  : integer := 4
@@ -35,14 +36,37 @@ entity crank_angle_computer is
   port (
     clk_125M    : in std_logic;           --125Mhz master clock
     rst         : in std_logic;           --global synchronous reset
-    pulse_train : in std_logic            --pulse train input from crank angle sensor
-    --tooth_count : out std_logic_vector(integer(ceil(log2(TEETH)))- 1 downto 0)
-    --angle       : out std_logic_vector;
+    pulse_train : in std_logic;            --pulse train input from crank angle sensor
+    --tooth_count : out std_logic_vector(integer(ceil(log2(TEETH)))- 1 downto 0);
+    angle       : out std_logic_vector(16 - 1 downto 0)
   );
 end crank_angle_computer;
 
-architecture Behavioral of crank_angle_computer is
+architecture rtl of crank_angle_computer is
+  --Constants-------------------------------------------------------------------
+  constant TOOTH_COUNT_WIDTH  : integer := integer(ceil(log2(real(TEETH)))); --Width of tooth counter
+  constant TOOTH_COUNT_MAX    : unsigned(TOOTH_COUNT_WIDTH - 1 downto 0) := to_unsigned(TEETH, TOOTH_COUNT_WIDTH); --Max value toth counter can reach
+  constant DOUBLE_WIDTH       : integer := WIDTH * 2; --Double width required for y to handle gap
   
+  --Internal Signals------------------------------------------------------------
+  --Tooth Counter
+  signal tooth_count_inc    : std_logic := '0';
+  signal tooth_count_rst    : std_logic := '0';
+  signal tooth_count_toggle : std_logic := '0';
+  signal tooth_count        : unsigned(TOOTH_COUNT_WIDTH - 1 downto 0) := (others=> '0');
+  
+  --Pulse Counter
+  signal x        : std_logic_vector(WIDTH - 1 downto 0) := (others => '0');
+  signal y        : std_logic_vector(DOUBLE_WIDTH - 1 downto 0) := (others => '0');
+  signal x_valid  : std_logic := '0';                  
+  signal y_valid  : std_logic := '0';                   
+  
+  signal gap_present  : std_logic := '0';
+  signal sync         : std_logic := '0';
+  
+  --Angle Counter
+  --signal angle : std_logic_vector(16 - 1 downto 0);
+
   --Component Declerations------------------------------------------------------
   --Gap Synchronizer determines where missing tooth is
   component gap_synchronizer
@@ -69,14 +93,22 @@ architecture Behavioral of crank_angle_computer is
   --Angle Counter computes current angle of crank shaft
   component angle_counter
     generic(
-      TEETH       : integer := 60 - 2
+      TEETH   : integer := 60 - 2;
+      X_DEG   : unsigned := "0000000010100001"; --2.53 in u[16 6] format
+      Y_DEG   : unsigned := "0000000010100001"; --YYY in u[16 6] format
+      GAP_DEG : unsigned := "0000000010100001"  --GGG in u[16 6] format
     );
     port (
-      clk_125M    : in std_logic;           --125Mhz master clock
-      rst         : in std_logic;           --global synchronous reset
-      gap_present : in std_logic;           --signal from gsynchronizer
-      tooth_count : in std_logic_vector(integer(ceil(log2(real(TEETH))))- 1 downto 0)    --running count of teeth on wheel
-      --angle       : out std_logic_vector;
+      clk_125M    : in std_logic;          --125Mhz master clock
+      rst         : in std_logic;          --global synchronous reset
+      x           : in std_logic_vector(WIDTH - 1 downto 0);
+      y           : in std_logic_vector(WIDTH*2 - 1 downto 0);
+      x_valid     : in std_logic;
+      y_valid     : in std_logic;
+      sync        : in std_logic;
+      gap_present : in std_logic;          --signal from gsynchronizer
+      --tooth_count : in std_logic_vector(integer(ceil(log2(real(TEETH))))- 1 downto 0);
+      angle       : out std_logic_vector(16 - 1 downto 0) --[16 6] unsigned fixed point 
     );
   end component;
   
@@ -85,40 +117,19 @@ architecture Behavioral of crank_angle_computer is
     generic(WIDTH : integer := 8);
     port (
       clk_125M    : in  std_logic;                      --125Mhz master clock
-      rst          : in  std_logic;                     --global synchronous reset
+      rst         : in  std_logic;                     --global synchronous reset
       pulse_train : in  std_logic;                      --pulse train from sensor
-      x           : out unsigned(WIDTH - 1 downto 0);   --high pulse width in samples
-      y           : out unsigned((WIDTH * 2) - 1 downto 0);   --low pulse width in samples
-      x_valid      : out std_logic;                     --high pulse width ready to be read
-      y_valid      : out std_logic                      --low pulse width ready to be read
+      x           : out std_logic_vector(WIDTH - 1 downto 0);   --high pulse width in samples
+      y           : out std_logic_vector((WIDTH * 2) - 1 downto 0);   --low pulse width in samples
+      x_valid     : out std_logic;                     --high pulse width ready to be read
+      y_valid     : out std_logic                      --low pulse width ready to be read
     );
   end component;
-  
-  --Constants-------------------------------------------------------------------
-  constant TOOTH_COUNT_WIDTH  : integer := integer(ceil(log2(real(TEETH)))); --Width of tooth counter
-  constant TOOTH_COUNT_MAX    : unsigned(TOOTH_COUNT_WIDTH - 1 downto 0) := to_unsigned(TEETH, TOOTH_COUNT_WIDTH); --Max value toth counter can reach
-  constant DOUBLE_WIDTH       : integer := WIDTH * 2; --Double width required for y to handle gap
-  
-  --Internal Signals------------------------------------------------------------
-  --Tooth Counter
-  signal tooth_count_inc    : std_logic := '0';
-  signal tooth_count_rst    : std_logic := '0';
-  signal tooth_count_toggle : std_logic := '0';
-  signal tooth_count        : unsigned(TOOTH_COUNT_WIDTH - 1 downto 0) := (others=> '0');
-  
-  --Pulse Counter
-  signal x        : unsigned(WIDTH - 1 downto 0) := (others => '0');
-  signal y        : unsigned(DOUBLE_WIDTH - 1 downto 0) := (others => '0');
-  signal x_valid  : std_logic := '0';                  
-  signal y_valid  : std_logic := '0';                   
-  
-  signal gap_present  : std_logic := '0';
-  signal sync         : std_logic := '0';
   
   begin
 
   --Toggled tooth Counter--------------------------------------------------------------- 
-  TOOTH_CNT: process(clk_125M)
+  TOOTH_CNT : process(clk_125M)
   begin
   if rising_edge(clk_125M) then             --Makes process synchronous
       if (rst = '1'or tooth_count_rst = '1') then                     --Always check clr
@@ -164,8 +175,8 @@ architecture Behavioral of crank_angle_computer is
   port map(
     clk_125M        => clk_125M,
     rst             => rst,
-    x               => std_logic_vector(x),
-    y               => std_logic_vector(y),
+    x               => x,
+    y               => y,
     x_valid         => x_valid,
     y_valid         => y_valid,
     tooth_count_rst => tooth_count_rst,
@@ -176,14 +187,22 @@ architecture Behavioral of crank_angle_computer is
   
   --Angle Counter
   ANGLE_CNT : angle_counter
-  generic map (                        
-    TEETH => TEETH
+  generic map(
+    TEETH   => 60 - 2,
+    X_DEG   => "0000000010100001", --2.53 in u[16 6] format
+    Y_DEG   => "0000000010100001", --YYY in u[16 6] format
+    GAP_DEG => "0000000010100001"  --GGG in u[16 6] format
   )
-  port map (                           
-    clk_125M    => clk_125M, 
+  port map (
+    clk_125M    => clk_125M,
     rst         => rst,
-    tooth_count => std_logic_vector(tooth_count), --Not working for some stupid reason
-    gap_present => gap_present 
-    --angle       : out std_logic_v
-  );                               
-end Behavioral;
+    x           => x,
+    y           => y,
+    x_valid     => x_valid,
+    y_valid     => y_valid,
+    sync        => sync,
+    gap_present => gap_present,
+    --tooth_count => --tooth_count,
+    angle       => angle
+  );                            
+end rtl;

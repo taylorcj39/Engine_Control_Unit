@@ -20,7 +20,8 @@
 -- Revisions  :
 -- Date				 Version	Author    Description
 -- 2017-10-14  1.0      CT        Created
--- 2017-18-18  1.1      CT        Doubled width of y to hold length of gap 
+-- 2017-10-18  1.1      CT        Doubled width of y to hold length of gap 
+-- 2017-11-12  1.1      CT        Changed output x, y from U to SLV 
 -------------------------------------------------------------------------------
 
 library IEEE;
@@ -34,8 +35,8 @@ entity pulse_counter is
 		clk_125M    : in	std_logic;                      --125Mhz master clock
 		rst	        : in	std_logic;                      --global synchronous reset
 		pulse_train : in	std_logic;                      --pulse train from sensor
-		x           : out unsigned(WIDTH - 1 downto 0);   --high pulse width in samples
-		y           : out unsigned((WIDTH * 2) - 1 downto 0);   --low pulse width in samples
+		x           : out std_logic_vector(WIDTH - 1 downto 0);   --high pulse width in samples
+		y           : out std_logic_vector((WIDTH * 2) - 1 downto 0);   --low pulse width in samples
 		x_valid	    : out std_logic;                      --high pulse width ready to be read
 		y_valid	    : out std_logic                       --low pulse width ready to be read
 	);
@@ -96,7 +97,7 @@ architecture Behavioral of pulse_counter is
       end if;
     end if;      
   end process;
-  x <= x_count; --Assign component output to internal count
+  x <= std_logic_vector(x_count); --Assign component output to internal count
 
   --Counter for 'low' pulses
   YCNT: process(clk_125M)
@@ -113,7 +114,7 @@ architecture Behavioral of pulse_counter is
       end if;
     end if;      
   end process;
-  y <= y_count; --Assign component output to internal count
+  y <= std_logic_vector(y_count); --Assign component output to internal count
 	------------------------------------------------------------------------------
 	
 	--Registers-------------------------------------------------------------------

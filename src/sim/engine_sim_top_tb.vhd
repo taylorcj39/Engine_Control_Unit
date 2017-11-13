@@ -16,8 +16,9 @@
 -- 
 -------------------------------------------------------------------------------
 -- Revisions  :
--- Date				Version	Author	Description
--- 2017-10-14	1.0			CT			Created
+-- Date				  Version	 Author	 Description
+-- 2017-10-14	  1.0			 CT			 Created
+-- 2017-11-12   1.1      CT      Added functionality for angle counter
 -------------------------------------------------------------------------------
 
 library IEEE;
@@ -28,15 +29,20 @@ use IEEE.math_real.all;
 entity engine_sim_top_tb is
 end engine_sim_top_tb;
 
-architecture Behavioral of engine_sim_top_tb is
+architecture rtl of engine_sim_top_tb is
   --Component to be simulated
   component engine_sim_top
-    generic (WIDTH : integer := 8);
+    generic (
+      TEETH       : integer := 60 - 2;
+      WIDTH       : integer := 8;
+      GAP_FACTOR  : integer := 4
+    );
     port (
-      rpm       : in integer;   --Desired speed of output pulse train
-      clk_125M  : in std_logic; --125Mhz clock pulse
-      rst       : in std_logic  --synchronous reset
-      --angle     : out integer;  --Calculated output angle
+      clk_125M    : in std_logic;           --125Mhz master clock
+      rst         : in std_logic;           --global synchronous reset
+      pulse_train : in std_logic;            --pulse train input from crank angle sensor
+      --tooth_count : out std_logic_vector(integer(ceil(log2(TEETH)))- 1 downto 0);
+      angle       : out std_logic_vector(16 - 1 downto 0)
     );
   end component;
   
@@ -45,7 +51,7 @@ architecture Behavioral of engine_sim_top_tb is
   signal rst : std_logic := '1';
   signal clk_125M : std_logic := '0';
   
-  constant CLK_125M_PERIOD : time := 8ns;
+  constant CLK_125M_PERIOD : time := 8 ns;
   
   begin
   
@@ -68,4 +74,4 @@ architecture Behavioral of engine_sim_top_tb is
     wait for 13ms;
   end process;
   
-end Behavioral;
+end rtl;
