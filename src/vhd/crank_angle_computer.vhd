@@ -31,7 +31,7 @@ entity crank_angle_computer is
   generic (
     TEETH       : integer := 60 - 2;
     WIDTH       : integer := 8;
-    GAP_FACTOR  : integer := 4
+    GAP_FACTOR  : integer := 5
   );
   port (
     clk_125M    : in std_logic;           --125Mhz master clock
@@ -65,15 +65,15 @@ architecture rtl of crank_angle_computer is
   signal sync         : std_logic := '0';
   
   --Angle Counter
-  --signal angle : std_logic_vector(16 - 1 downto 0);
-
+  signal angle_q : std_logic_vector(16 - 1 downto 0) := (others => '0');
+ 
   --Component Declerations------------------------------------------------------
   --Gap Synchronizer determines where missing tooth is
   component gap_synchronizer
     generic (
         TEETH       : integer := 60-2;  --teeth on wheel 
         WIDTH       : integer := 8;      --width of x,y
-        GAP_FACTOR  : integer := 4
+        GAP_FACTOR  : integer := 5
     );
     port (
       clk_125M        : in  std_logic;
@@ -91,26 +91,26 @@ architecture rtl of crank_angle_computer is
   end component;
   
   --Angle Counter computes current angle of crank shaft
-  component angle_counter
-    generic(
-      TEETH   : integer := 60 - 2;
-      X_DEG   : unsigned := "0000000010100001"; --2.53 in u[16 6] format
-      Y_DEG   : unsigned := "0000000010100001"; --YYY in u[16 6] format
-      GAP_DEG : unsigned := "0000000010100001"  --GGG in u[16 6] format
-    );
-    port (
-      clk_125M    : in std_logic;          --125Mhz master clock
-      rst         : in std_logic;          --global synchronous reset
-      x           : in std_logic_vector(WIDTH - 1 downto 0);
-      y           : in std_logic_vector(WIDTH*2 - 1 downto 0);
-      x_valid     : in std_logic;
-      y_valid     : in std_logic;
-      sync        : in std_logic;
-      gap_present : in std_logic;          --signal from gsynchronizer
-      --tooth_count : in std_logic_vector(integer(ceil(log2(real(TEETH))))- 1 downto 0);
-      angle       : out std_logic_vector(16 - 1 downto 0) --[16 6] unsigned fixed point 
-    );
-  end component;
+--  component angle_counter
+--    generic(
+--      TEETH   : integer := 60 - 2;
+--      X_DEG   : unsigned := "0000000010100001"; --2.53 in u[16 6] format
+--      Y_DEG   : unsigned := "0000000010100001"; --YYY in u[16 6] format
+--      GAP_DEG : unsigned := "0000000010100001"  --GGG in u[16 6] format
+--    );
+--    port (
+--      clk_125M    : in std_logic;          --125Mhz master clock
+--      rst         : in std_logic;          --global synchronous reset
+--      x           : in std_logic_vector(WIDTH - 1 downto 0);
+--      y           : in std_logic_vector(WIDTH*2 - 1 downto 0);
+--      x_valid     : in std_logic;
+--      y_valid     : in std_logic;
+--      sync        : in std_logic;
+--      gap_present : in std_logic;          --signal from gsynchronizer
+--      --tooth_count : in std_logic_vector(integer(ceil(log2(real(TEETH))))- 1 downto 0);
+--      angle       : out std_logic_vector(16 - 1 downto 0) --[16 6] unsigned fixed point 
+--    );
+--  end component;
   
   --Pulse counter determines width of previous tooth/gap
   component pulse_counter
@@ -127,6 +127,8 @@ architecture rtl of crank_angle_computer is
   end component;
   
   begin
+
+   angle <= angle_q;
 
   --Toggled tooth Counter--------------------------------------------------------------- 
   TOOTH_CNT : process(clk_125M)
@@ -186,23 +188,23 @@ architecture rtl of crank_angle_computer is
   );
   
   --Angle Counter
-  ANGLE_CNT : angle_counter
-  generic map(
-    TEETH   => 60 - 2,
-    X_DEG   => "0000000010100001", --2.53 in u[16 6] format
-    Y_DEG   => "0000000010100001", --YYY in u[16 6] format
-    GAP_DEG => "0000000010100001"  --GGG in u[16 6] format
-  )
-  port map (
-    clk_125M    => clk_125M,
-    rst         => rst,
-    x           => x,
-    y           => y,
-    x_valid     => x_valid,
-    y_valid     => y_valid,
-    sync        => sync,
-    gap_present => gap_present,
-    --tooth_count => --tooth_count,
-    angle       => angle
-  );                            
+--  ANGLE_CNT : angle_counter
+--  generic map(
+--    TEETH   => 60 - 2,
+--    X_DEG   => "0000000010100001", --2.53 in u[16 6] format
+--    Y_DEG   => "0000000010100001", --YYY in u[16 6] format
+--    GAP_DEG => "0000000010100001"  --GGG in u[16 6] format
+--  )
+--  port map (
+--    clk_125M    => clk_125M,
+--    rst         => rst,
+--    x           => x,
+--    y           => y,
+--    x_valid     => x_valid,
+--    y_valid     => y_valid,
+--    sync        => sync,
+--    gap_present => gap_present,
+--    --tooth_count => --tooth_count,
+--    angle       => angle
+--  );                            
 end rtl;

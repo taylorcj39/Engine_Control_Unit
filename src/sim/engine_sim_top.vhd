@@ -43,13 +43,19 @@ architecture rtl of engine_sim_top is
   --Component Declerations------------------------------------------------------
   --Engine Simulator (Creates pulse train based on rpm input)
   component engine_sim
-    generic(TEETH : integer := 60-2; GAP_FACTOR : integer := 4; DUTY : real := 0.5);
+    generic (
+      TEETH      : integer := 60-2;  --Number of teeth in revolution
+      NORM_DUTY  : real := 0.425;    --Normal high/(low+high)
+      --GAP_DUTY   : real := 0.16;     --Tooth before gap/(gap + tooth before)
+      GAP_FACTOR : real := 5.25;     --Gap width/tooth before gap
+      POST_DUTY  : real := 0.58      --Tooth after gap/(gap + tooth after)
+    );
     port (
-      rpm         : in  integer;     --Desired speed of output pulse train
+      rpm         : in integer;     --Desired speed of output pulse train
       clk_125M    : in  std_logic;  --125Mhz master clock
       enable      : in  std_logic;  --sampling clock
-      rst         : in  std_logic;  --clr
-      pulse_train : out std_logic  --simulated pulse train output
+      rst          : in  std_logic;  --clr
+      pulse_train : out  std_logic  --simulated pulse train output
     );
   end component;
   
@@ -80,7 +86,10 @@ architecture rtl of engine_sim_top is
   --Component Instantiation-----------------------------------------------------
   --Engine simulator
   ENG_SIM : engine_sim
-  generic map (TEETH => 60 - 2, GAP_FACTOR => 4, DUTY => 0.4)
+--  generic map (
+--    TEETH => 60 - 2,
+--    GAP_DUTY => 0.16,
+--    DUTY => 0.425)
   port map (
     clk_125M    => '1',--clk_125M,
     rpm         => rpm,

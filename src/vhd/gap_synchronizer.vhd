@@ -19,6 +19,7 @@
 -- Revisions  :
 -- Date			    Version	  Author    Description
 -- 2017-10-17   1.0       CT        Created
+-- 2017-11-13   1.1       CT        Moving tooth counter inside here, making gap factor real number
 -------------------------------------------------------------------------------
 
 library IEEE;
@@ -31,7 +32,8 @@ entity gap_synchronizer is
     TEETH         : integer := 60-2;  --teeth on wheel 
     WIDTH         : integer := 8;      --width of x,y
     EXTRA_WIDTH   : integer := 16;
-    GAP_FACTOR    : integer := 4
+    --GAP_FACTOR    : real := 5.25
+    GAP_FACTOR    : integer := 5
   );
   port (
     clk_125M        : in  std_logic;
@@ -57,6 +59,7 @@ architecture Behavioral of gap_synchronizer is
   constant TOOTH_CNT_WIDTH  : integer := integer(ceil(log2(real(TEETH))));
   constant TOOTH_CNT_MAX    : unsigned(TOOTH_CNT_WIDTH - 1 downto 0) := to_unsigned(TEETH, TOOTH_CNT_WIDTH);
   --constant TEETH_WIDTH : integer := integer(ceil(log2(TEETH))); --Width to hold teeth in tooth counter
+  --constant GAP_FACTOR_SCALED : integer := integer(GAP_FACTOR * 8.0);
   
   --Internal Signals------------------------------------------------------------
   --gap
@@ -164,10 +167,17 @@ architecture Behavioral of gap_synchronizer is
   end process;
   
   --Combinational Calculations for gap
-  g <= (x_q * to_unsigned(GAP_FACTOR, WIDTH));
+  
+  g <= (x_q * to_unsigned(GAP_FACTOR, WIDTH));  --when GAP_FACTOR was an integer
+  --g <= (x_q * to_unsigned(GAP_FACTOR_SCALED, WIDTH));--/8;
+  
+  
   --g_plus <= g * to_unsigned(1.05, GAP_FACTOR_ADD_WIDTH); --Dynamic tolerance would be preferred
   --g_minus <= g * to_unsigned(0.95, GAP_FACTOR_ADD_WIDTH); 
-  g_plus <= g + 5; -- (+/-)5  = (+/-)2.08% @ 1000rpm, (+/-)10.41% @ 5000rpm 
+  
+  --g_plus <= g + 5; -- (+/-)5  = (+/-)2.08% @ 1000rpm, (+/-)10.41% @ 5000rpm 
   g_minus <= g - 5;
+  
+  g_plus <= g + 10; -- (+/-)5  = (+/-)2.08% @ 1000rpm, (+/-)10.41% @ 5000rpm 
   
 end Behavioral;

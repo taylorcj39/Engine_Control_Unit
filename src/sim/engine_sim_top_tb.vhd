@@ -32,17 +32,12 @@ end engine_sim_top_tb;
 architecture rtl of engine_sim_top_tb is
   --Component to be simulated
   component engine_sim_top
-    generic (
-      TEETH       : integer := 60 - 2;
-      WIDTH       : integer := 8;
-      GAP_FACTOR  : integer := 4
-    );
+    generic (WIDTH : integer := 8);
     port (
-      clk_125M    : in std_logic;           --125Mhz master clock
-      rst         : in std_logic;           --global synchronous reset
-      pulse_train : in std_logic;            --pulse train input from crank angle sensor
-      --tooth_count : out std_logic_vector(integer(ceil(log2(TEETH)))- 1 downto 0);
-      angle       : out std_logic_vector(16 - 1 downto 0)
+      rpm       : in integer;   --Desired speed of output pulse train
+      clk_125M  : in std_logic; --125Mhz clock pulse
+      rst       : in std_logic  --synchronous reset
+      --angle     : out integer;  --Calculated output angle
     );
   end component;
   

@@ -118,6 +118,7 @@ architecture Behavioral of angle_counter is
  end process;
  aclk <= aclk_q(3 - 1);
  
+ --Low Resolution Angle addition
  --FSM (Mealy machine)--------------------------------------------------------------------------
   --State Transition Process
   TRANSITION : process(clk_125M)
@@ -164,7 +165,7 @@ architecture Behavioral of angle_counter is
     end case;
   end process;
   
--- --Low Resolution Angle Incrementer
+-- High Resolution Angle Incrementer
 -- LRES_ANGLE_INC : process(clk_125M)
 -- begin
 -- if rising_edge(clk_125M) then
