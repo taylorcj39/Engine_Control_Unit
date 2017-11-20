@@ -18,6 +18,7 @@
 -- Revisions  :
 -- Date			    Version	  Author    Description
 -- 2017-11-12   1.0       CT        Created
+-- 2017-11-18   1.1       CT        Appears to be working for low resolution mode
 -------------------------------------------------------------------------------
 
 library IEEE;
@@ -28,9 +29,9 @@ use IEEE.math_real.all;
 entity angle_counter is 
   generic(
     TEETH       : integer := 60 - 2;
-    X_DEG   : unsigned := "0000000010100001"; --2.53 in u[16 6] format
-    Y_DEG   : unsigned := "0000000010100001"; --YYY in u[16 6] format
-    GAP_DEG : unsigned := "0000000010100001"  --GGG in u[16 6] format
+    X_DEG   : unsigned := "0000000010100010"; --2.5451 in u[16 6] format
+    Y_DEG   : unsigned := "0000000011011101"; --3.4549 in u[16 6] format
+    GAP_DEG : unsigned := "0000001111011101"  --15.4549 in u[16 6] format
   );
   port (
     clk_125M    : in std_logic;          --125Mhz master clock
@@ -56,15 +57,16 @@ architecture Behavioral of angle_counter is
   signal state : STATE_TYPE := start;
   
   --Internal Signals----------------------------------------------------------------
-  signal aclk_q : unsigned(3 - 1 downto 0);
-  signal aclk   : std_logic;
-  signal sclk_q : unsigned(9 - 1 downto 0);
-  signal sclk   : std_logic;
+  signal aclk_q : unsigned(3 - 1 downto 0) := (others => '0');
+  signal aclk   : std_logic := '0';
+  signal sclk_q : unsigned(9 - 1 downto 0) := (others => '0');
+  signal sclk   : std_logic := '0';
   
-  signal x_q    : unsigned(8 - 1 downto 0); 
-  signal y_q    : unsigned(16 - 1 downto 0);
+  signal x_q    : unsigned(8 - 1 downto 0) := (others => '0'); 
+  signal y_q    : unsigned(16 - 1 downto 0) := (others => '0');
   
-  signal angle_q : unsigned(16 - 1 downto 0);
+  signal angle_q : unsigned(16 - 1 downto 0) := (others => '0');
+  signal angle_rst : std_logic := '0';
    
   begin
   
@@ -91,6 +93,7 @@ architecture Behavioral of angle_counter is
     end if;
   end process;
  
+  --Clock generators------------------------------------------------------------
   --Sampling clk generator
   SCLKGEN : process(clk_125M)
   begin
@@ -118,6 +121,28 @@ architecture Behavioral of angle_counter is
  end process;
  aclk <= aclk_q(3 - 1);
  
+ --Low resolution Angle Counter
+  ANGLE_CNT_LOW_RES : process(clk_125M)
+  begin
+  if rising_edge(clk_125M) then
+    if rst = '1' or angle_rst = '1' then
+      angle_q <= (others => '0');
+    else
+      if state = normal then
+        if x_valid = '1' then
+          angle_q <= angle_q + X_DEG;
+        elsif y_valid = '1' then
+          angle_q <= angle_q + Y_DEG;
+        end if;
+      elsif state = gap then
+        if gap_present = '0' then
+          angle_q <= angle_q + GAP_DEG;
+        end if;
+      end if;
+    end if;
+  end if;
+  end process;
+  
  --Low Resolution Angle addition
  --FSM (Mealy machine)--------------------------------------------------------------------------
   --State Transition Process
@@ -145,25 +170,26 @@ architecture Behavioral of angle_counter is
   end if;
   end process;
   
-  ASSIGNMENT : process(state, x_valid, y_valid, gap_present, angle_q)
-  begin
-    --Default outputs
-    angle_q <= (others => '0');
-    case state is
-      when start =>
-        null;
-      when normal =>
-        if x_valid = '1' then
-          angle_q <= angle_q + X_DEG;
-        elsif y_valid = '1' then
-          angle_q <= angle_q + Y_DEG;
-        end if;
-      when gap =>
-        if gap_present = '0' then --May not work, might need additional state
-          angle_q <= angle_q + GAP_DEG;
-        end if;    
-    end case;
-  end process;
+--  ASSIGNMENT : process(state, x_valid, y_valid, gap_present, angle_q)
+--  begin
+--    --Default outputs
+--    angle_q <= (others => '0');
+--    case state is
+--      when start =>
+--        --null;
+--        angle_q <= (others => '0');
+--      when normal =>
+--        if x_valid = '1' then
+--          --angle_q <= angle_q + X_DEG;
+--        elsif y_valid = '1' then
+----          angle_q <= angle_q + Y_DEG;
+--        end if;
+--      when gap =>
+--        if gap_present = '0' then --May not work, might need additional state
+--          angle_q <= angle_q + GAP_DEG;
+--        end if;    
+--    end case;
+--  end process;
   
 -- High Resolution Angle Incrementer
 -- LRES_ANGLE_INC : process(clk_125M)
