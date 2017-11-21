@@ -47,7 +47,7 @@ architecture rtl of engine_sim_top is
       TEETH      : integer := 60-2;  --Number of teeth in revolution
       NORM_DUTY  : real := 0.425;    --Normal high/(low+high)
       --GAP_DUTY   : real := 0.16;     --Tooth before gap/(gap + tooth before)
-      GAP_FACTOR : real := 5.25;     --Gap width/tooth before gap
+      --GAP_FACTOR : real := 5.25;     --Gap width/tooth before gap
       POST_DUTY  : real := 0.58      --Tooth after gap/(gap + tooth after)
     );
     port (
@@ -64,7 +64,8 @@ architecture rtl of engine_sim_top is
     generic (
       TEETH       : integer := 60 - 2;
       WIDTH       : integer := 8;
-      GAP_FACTOR  : integer := 4
+      --GAP_FACTOR  : integer := 4
+      GAP_FACTOR : unsigned(8 - 1 downto 0) := "01010100"  --5.25 in u[8 4] format
     );
     port (
       clk_125M    : in std_logic;           --125Mhz master clock
@@ -102,8 +103,8 @@ architecture rtl of engine_sim_top is
   ANGLE_CPU : crank_angle_computer
   generic map (
     TEETH      => 60-2,
-    WIDTH      => 8,
-    GAP_FACTOR => 5
+    WIDTH      => 8
+    --GAP_FACTOR => 5
   )
   port map (
     clk_125M    => clk_125M,

@@ -14,12 +14,13 @@
 --    based on pulse-train input from crank angle sensor
 -------------------------------------------------------------------------------
 -- Notes:
--- 
+--  (2017-11-20): Tooth counter has bugs, needs to be moved to within gap_synchronizer
 -------------------------------------------------------------------------------
 -- Revisions  :
 -- Date			    Version	  Author    Description
 -- 2017-10-17   1.0       CT        Created
 -- 2017-11-12   1.0       CT        Added angle counter (early revision) and synchronizer
+
 -------------------------------------------------------------------------------
 
 library IEEE;
@@ -31,7 +32,9 @@ entity crank_angle_computer is
   generic (
     TEETH       : integer := 60 - 2;
     WIDTH       : integer := 8;
-    GAP_FACTOR  : integer := 5
+    --GAP_FACTOR  : integer := 5
+    --GAP_FACTOR  : real := 5.25
+    GAP_FACTOR    : unsigned(8 - 1 downto 0) := "01010100"  --5.25 in u[8 4] format
   );
   port (
     clk_125M    : in std_logic;           --125Mhz master clock
@@ -73,7 +76,9 @@ architecture rtl of crank_angle_computer is
     generic (
         TEETH       : integer := 60-2;  --teeth on wheel 
         WIDTH       : integer := 8;      --width of x,y
-        GAP_FACTOR  : integer := 5
+        --GAP_FACTOR  : integer := 5
+        --GAP_FACTOR  : real  := 5.25
+        GAP_FACTOR    : unsigned(8 - 1 downto 0) := "01010100"  --5.25 in u[8 4] format
     );
     port (
       clk_125M        : in  std_logic;

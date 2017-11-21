@@ -20,6 +20,7 @@
 -- Date			    Version	  Author    Description
 -- 2017-10-17   1.0       CT        Created
 -- 2017-11-13   1.1       CT        Moving tooth counter inside here, making gap factor real number
+-- 2017-11-20   1.2       CT        Made generic GAP_FACTOR of u[8 4] FX
 -------------------------------------------------------------------------------
 
 library IEEE;
@@ -33,7 +34,8 @@ entity gap_synchronizer is
     WIDTH         : integer := 8;      --width of x,y
     EXTRA_WIDTH   : integer := 16;
     --GAP_FACTOR    : real := 5.25
-    GAP_FACTOR    : integer := 5
+    --GAP_FACTOR    : integer := 5
+    GAP_FACTOR    : unsigned(8 - 1 downto 0) := "01010100"  --5.25 in u[8 4] format
   );
   port (
     clk_125M        : in  std_logic;
@@ -60,6 +62,7 @@ architecture Behavioral of gap_synchronizer is
   constant TOOTH_CNT_MAX    : unsigned(TOOTH_CNT_WIDTH - 1 downto 0) := to_unsigned(TEETH, TOOTH_CNT_WIDTH);
   --constant TEETH_WIDTH : integer := integer(ceil(log2(TEETH))); --Width to hold teeth in tooth counter
   --constant GAP_FACTOR_SCALED : integer := integer(GAP_FACTOR * 8.0);
+  --signal g_int : unsigned(64-1 downto 0);
   
   --Internal Signals------------------------------------------------------------
   --gap
@@ -168,9 +171,11 @@ architecture Behavioral of gap_synchronizer is
   
   --Combinational Calculations for gap
   
-  g <= (x_q * to_unsigned(GAP_FACTOR, WIDTH));  --when GAP_FACTOR was an integer
-  --g <= (x_q * to_unsigned(GAP_FACTOR_SCALED, WIDTH));--/8;
+  --g <= (x_q * to_unsigned(GAP_FACTOR, WIDTH));  --when GAP_FACTOR was an integer
   
+  --g_int <= (x_q * to_unsigned(GAP_FACTOR_SCALED, WIDTH));--/8;
+  --g <= g/8;
+  g <= (x_q * GAP_FACTOR)/16;
   
   --g_plus <= g * to_unsigned(1.05, GAP_FACTOR_ADD_WIDTH); --Dynamic tolerance would be preferred
   --g_minus <= g * to_unsigned(0.95, GAP_FACTOR_ADD_WIDTH); 

@@ -95,7 +95,7 @@ architecture Behavioral of angle_counter is
  
   --Clock generators------------------------------------------------------------
   --Sampling clk generator
-  SCLKGEN : process(clk_125M)
+  SCLK_GEN : process(clk_125M)
   begin
   if rising_edge(clk_125M) then
     if rst = '1' then

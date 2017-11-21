@@ -65,7 +65,7 @@ architecture rtl of engine_sim_top_tb is
     wait for CLK_125M_PERIOD * 3;
     rst <= '0';
     wait for 13ms;
-    rpm <= 1000;
+    --rpm <= 1000;
     wait for 13ms;
   end process;
   
