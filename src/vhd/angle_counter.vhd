@@ -51,6 +51,7 @@ architecture Behavioral of angle_counter is
   --Constants-------------------------------------------------------------------
   --constant LRES_ANGLE : unsigned(16 - 1 downto 0) := to_unsigned(16 - 1 downto 0)
   constant ANGLE_MAX : unsigned(16 - 1 downto 0) := "1011010000000000"; --720 in u[16 6]
+  constant ANGLE_TOP : unsigned(16 - 1 downto 0) := ANGLE_MAX - Y_DEG; --720-Y_DEG in u[16 6]
   
   --State type and signals------------------------------------------------------
   type STATE_TYPE is (start, normal, gap);
@@ -129,12 +130,16 @@ architecture Behavioral of angle_counter is
       angle_q <= (others => '0');
     else
       if state = normal then
-        if x_valid = '1' then
-          angle_q <= angle_q + X_DEG;
-        elsif y_valid = '1' then
+        if x_valid = '1' then --Addition due to tooth goign by
+          if angle_q >= ANGLE_MAX - X_DEG then --Going to roll over 720, add 0 + Y_DEG
+            angle_q <= X_DEG;
+          else
+            angle_q <= angle_q + X_DEG;
+          end if;
+        elsif y_valid = '1' then  --Addition due to low going by
           angle_q <= angle_q + Y_DEG;
         end if;
-      elsif state = gap then
+      elsif state = gap then  --Addition due to gap going by
         if gap_present = '0' then
           angle_q <= angle_q + GAP_DEG;
         end if;
@@ -170,43 +175,5 @@ architecture Behavioral of angle_counter is
   end if;
   end process;
   
---  ASSIGNMENT : process(state, x_valid, y_valid, gap_present, angle_q)
---  begin
---    --Default outputs
---    angle_q <= (others => '0');
---    case state is
---      when start =>
---        --null;
---        angle_q <= (others => '0');
---      when normal =>
---        if x_valid = '1' then
---          --angle_q <= angle_q + X_DEG;
---        elsif y_valid = '1' then
-----          angle_q <= angle_q + Y_DEG;
---        end if;
---      when gap =>
---        if gap_present = '0' then --May not work, might need additional state
---          angle_q <= angle_q + GAP_DEG;
---        end if;    
---    end case;
---  end process;
-  
--- High Resolution Angle Incrementer
--- LRES_ANGLE_INC : process(clk_125M)
--- begin
--- if rising_edge(clk_125M) then
---  if rst = '1' then
---    angle_q <= (others => '0');
---  elsif x_valid = '1' then
---    if angle_q < ANGLE_MAX then
---      angle_q <= angle_q + TOOTH_DEG;
---    else
---      angle_q <= (others => '0');
---    end if;
---  elsif y_valid and 
---  end if;
--- end if;
--- end process;
- 
  angle <= std_logic_vector(angle_q);
 end Behavioral;

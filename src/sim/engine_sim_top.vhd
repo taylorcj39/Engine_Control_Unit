@@ -44,16 +44,17 @@ architecture rtl of engine_sim_top is
   --Engine Simulator (Creates pulse train based on rpm input)
   component engine_sim
     generic (
-      TEETH      : integer := 60-2;  --Number of teeth in revolution
-      NORM_DUTY  : real := 0.425;    --Normal high/(low+high)
+      TEETH       : integer := 60-2;  --Number of teeth in revolution
+      NORM_DUTY    : real := 0.425;    --Normal high/(low+high)
       --GAP_DUTY   : real := 0.16;     --Tooth before gap/(gap + tooth before)
-      --GAP_FACTOR : real := 5.25;     --Gap width/tooth before gap
-      POST_DUTY  : real := 0.58      --Tooth after gap/(gap + tooth after)
+      GAP_FACTOR   : real := 5.25;     --Gap width/tooth before gap
+      POST_DUTY    : real := 0.58;      --Tooth after gap/(gap + tooth after)
+      START_TOOTH  : integer := 3
     );
     port (
       rpm         : in integer;     --Desired speed of output pulse train
       clk_125M    : in  std_logic;  --125Mhz master clock
-      enable      : in  std_logic;  --sampling clock
+      --enable      : in  std_logic;  --sampling clock
       rst          : in  std_logic;  --clr
       pulse_train : out  std_logic  --simulated pulse train output
     );
@@ -78,7 +79,7 @@ architecture rtl of engine_sim_top is
   
   --Internal Signals and Constants----------------------------------------------
   signal pulse_train  : std_logic := '0';
-  signal sim_enable   : std_logic := '1'; --is this necessary?
+  --signal sim_enable   : std_logic := '1'; --is this necessary?
   signal angle        : std_logic_vector(16 - 1 downto 0) := (others => '0'); --is this necessary?
   
   begin  
@@ -94,7 +95,7 @@ architecture rtl of engine_sim_top is
   port map (
     clk_125M    => '1',--clk_125M,
     rpm         => rpm,
-    enable      => sim_enable,
+    --enable      => sim_enable,
     rst         => rst,
     pulse_train => pulse_train
   );

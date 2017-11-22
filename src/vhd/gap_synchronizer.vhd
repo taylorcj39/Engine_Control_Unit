@@ -14,13 +14,14 @@
 --    present in terms of entire cycle (tooth 1 = tooth following gap)
 -------------------------------------------------------------------------------
 -- Notes:
--- 
+-- Tooth count innacuracy before sync does not matter. Tooth count is only used after sync
 -------------------------------------------------------------------------------
 -- Revisions  :
 -- Date			    Version	  Author    Description
 -- 2017-10-17   1.0       CT        Created
 -- 2017-11-13   1.1       CT        Moving tooth counter inside here, making gap factor real number
 -- 2017-11-20   1.2       CT        Made generic GAP_FACTOR of u[8 4] FX
+-- 2017-11-22   1.21      CT        Fixed bugs with tooth counter and gap verification
 -------------------------------------------------------------------------------
 
 library IEEE;
@@ -60,10 +61,7 @@ architecture Behavioral of gap_synchronizer is
   --Constants
   constant TOOTH_CNT_WIDTH  : integer := integer(ceil(log2(real(TEETH))));
   constant TOOTH_CNT_MAX    : unsigned(TOOTH_CNT_WIDTH - 1 downto 0) := to_unsigned(TEETH, TOOTH_CNT_WIDTH);
-  --constant TEETH_WIDTH : integer := integer(ceil(log2(TEETH))); --Width to hold teeth in tooth counter
-  --constant GAP_FACTOR_SCALED : integer := integer(GAP_FACTOR * 8.0);
-  --signal g_int : unsigned(64-1 downto 0);
-  
+ 
   --Internal Signals------------------------------------------------------------
   --gap
   signal g        : unsigned(EXTRA_WIDTH - 1 downto 0) := (others => '0'); 
@@ -72,14 +70,7 @@ architecture Behavioral of gap_synchronizer is
   --x & y registers
   signal x_q      : unsigned(WIDTH - 1 downto 0)  := (others => '0');  --Internal registered value of x
   signal y_q      : unsigned(EXTRA_WIDTH - 1 downto 0) := (others => '0');  --Internal registered value of y
-  --signal x_e      : std_logic;  --x register load signal
-  --signal y_e      : std_logic;  --y register load signal
-  --tooth counter
-  --signal tooth_count_inc    : std_logic;
-  --signal tooth_count_rst    : std_logic;
---  signal tooth_count_toggle : std_logic;
---  signal tooth_count_q        : unsigned(TOOTH_CNT_WIDTH - 1 downto 0);
---  
+
   begin
   
   --Registers-------------------------------------------------------------------
@@ -119,7 +110,8 @@ architecture Behavioral of gap_synchronizer is
               state <= calc_g;
             end if;
           when calc_g =>          --Buffer state to calculate g based on x
-            state <= reset_sync;
+            --state <= reset_sync;
+            state <= pre_sync;
           when reset_sync =>     --State which sets tooth count back to 1
             state <= pre_sync;
           when pre_sync =>        --Gap has not been accurately identified yet
@@ -130,13 +122,13 @@ architecture Behavioral of gap_synchronizer is
           when sync_state =>
             state <= post_sync;
           when post_sync =>       --Gap has been accurately identified
-            if unsigned(tooth_count) = TOOTH_CNT_MAX - 1 then
+            if unsigned(tooth_count) = TOOTH_CNT_MAX then
               state <= verify;
             end if;
-          when verify =>          --Check to ensure we are still synced
-            if (g_minus <= y_q or y_q <= g_plus) then
+          when verify =>          --Check to ensure we are still synced (Currently resets tooth counter (tooth = 0 when in gap)
+            if (g_minus <= y_q and y_q <= g_plus) then --Compare y value to gap calculated value
               state <= post_sync;
-            else
+            elsif x_valid = '1' then  --New tooth has come in and gap never matched, start over
               state <= reset_sync;
             end if;
          end case;
@@ -170,19 +162,9 @@ architecture Behavioral of gap_synchronizer is
   end process;
   
   --Combinational Calculations for gap
-  
-  --g <= (x_q * to_unsigned(GAP_FACTOR, WIDTH));  --when GAP_FACTOR was an integer
-  
-  --g_int <= (x_q * to_unsigned(GAP_FACTOR_SCALED, WIDTH));--/8;
-  --g <= g/8;
-  g <= (x_q * GAP_FACTOR)/16;
-  
-  --g_plus <= g * to_unsigned(1.05, GAP_FACTOR_ADD_WIDTH); --Dynamic tolerance would be preferred
-  --g_minus <= g * to_unsigned(0.95, GAP_FACTOR_ADD_WIDTH); 
-  
-  --g_plus <= g + 5; -- (+/-)5  = (+/-)2.08% @ 1000rpm, (+/-)10.41% @ 5000rpm 
+  g <= (x_q * GAP_FACTOR)/16; 
+  g_plus <= g + 5; -- (+/-)5  = (+/-)2.08% @ 1000rpm, (+/-)10.41% @ 5000rpm 
   g_minus <= g - 5;
-  
-  g_plus <= g + 10; -- (+/-)5  = (+/-)2.08% @ 1000rpm, (+/-)10.41% @ 5000rpm 
-  
+  --Dynamic gap tolerance would be nice (multiplication, not +/-)
+    
 end Behavioral;
