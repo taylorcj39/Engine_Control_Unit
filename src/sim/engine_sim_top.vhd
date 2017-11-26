@@ -46,7 +46,6 @@ architecture rtl of engine_sim_top is
     generic (
       TEETH       : integer := 60-2;  --Number of teeth in revolution
       NORM_DUTY    : real := 0.425;    --Normal high/(low+high)
-      --GAP_DUTY   : real := 0.16;     --Tooth before gap/(gap + tooth before)
       GAP_FACTOR   : real := 5.25;     --Gap width/tooth before gap
       POST_DUTY    : real := 0.58;      --Tooth after gap/(gap + tooth after)
       START_TOOTH  : integer := 3
@@ -54,8 +53,7 @@ architecture rtl of engine_sim_top is
     port (
       rpm         : in integer;     --Desired speed of output pulse train
       clk_125M    : in  std_logic;  --125Mhz master clock
-      --enable      : in  std_logic;  --sampling clock
-      rst          : in  std_logic;  --clr
+      rst          : in  std_logic;  --synchronous global reset
       pulse_train : out  std_logic  --simulated pulse train output
     );
   end component;
@@ -65,22 +63,19 @@ architecture rtl of engine_sim_top is
     generic (
       TEETH       : integer := 60 - 2;
       WIDTH       : integer := 8;
-      --GAP_FACTOR  : integer := 4
-      GAP_FACTOR : unsigned(8 - 1 downto 0) := "01010100"  --5.25 in u[8 4] format
+      GAP_FACTOR    : unsigned(8 - 1 downto 0) := "01010100"  --5.25 in u[8 4] format
     );
     port (
       clk_125M    : in std_logic;           --125Mhz master clock
       rst         : in std_logic;           --global synchronous reset
       pulse_train : in std_logic;            --pulse train input from crank angle sensor
-      --tooth_count : out std_logic_vector(integer(ceil(log2(TEETH)))- 1 downto 0);
-      angle       : out std_logic_vector(16 - 1 downto 0)
+      angle       : out unsigned(16 - 1 downto 0)
     );
   end component;
   
   --Internal Signals and Constants----------------------------------------------
   signal pulse_train  : std_logic := '0';
-  --signal sim_enable   : std_logic := '1'; --is this necessary?
-  signal angle        : std_logic_vector(16 - 1 downto 0) := (others => '0'); --is this necessary?
+  signal angle        : unsigned(16 - 1 downto 0) := (others => '0'); --is this necessary?
   
   begin  
   --External Assignments--------------------------------------------------------
@@ -95,7 +90,6 @@ architecture rtl of engine_sim_top is
   port map (
     clk_125M    => '1',--clk_125M,
     rpm         => rpm,
-    --enable      => sim_enable,
     rst         => rst,
     pulse_train => pulse_train
   );
@@ -105,7 +99,6 @@ architecture rtl of engine_sim_top is
   generic map (
     TEETH      => 60-2,
     WIDTH      => 8
-    --GAP_FACTOR => 5
   )
   port map (
     clk_125M    => clk_125M,

@@ -28,7 +28,7 @@ use IEEE.math_real.all;
 
 entity angle_counter is 
   generic(
-    TEETH       : integer := 60 - 2;
+    TEETH   : integer := 60 - 2;
     X_DEG   : unsigned := "0000000010100010"; --2.5451 in u[16 6] format
     Y_DEG   : unsigned := "0000000011011101"; --3.4549 in u[16 6] format
     GAP_DEG : unsigned := "0000001111011101"  --15.4549 in u[16 6] format
@@ -36,18 +36,18 @@ entity angle_counter is
   port (
     clk_125M    : in std_logic;          --125Mhz master clock
     rst         : in std_logic;          --global synchronous reset
-    x           : in std_logic_vector(8 - 1 downto 0);
-    y           : in std_logic_vector(16 - 1 downto 0);
+    x           : in unsigned(8 - 1 downto 0);
+    y           : in unsigned(16 - 1 downto 0);
     x_valid     : in std_logic;
     y_valid     : in std_logic;
     sync        : in std_logic;
     gap_present : in std_logic;          --signal from gsynchronizer
     --tooth_count : in std_logic_vector(integer(ceil(log2(real(TEETH))))- 1 downto 0);          --
-    angle       : out std_logic_vector(16 - 1 downto 0) --[16 6] unsigned fixed point 
+    angle       : out unsigned(16 - 1 downto 0) --[16 6] unsigned fixed point 
   );
 end angle_counter;
 
-architecture Behavioral of angle_counter is
+architecture rtl of angle_counter is
   --Constants-------------------------------------------------------------------
   --constant LRES_ANGLE : unsigned(16 - 1 downto 0) := to_unsigned(16 - 1 downto 0)
   constant ANGLE_MAX : unsigned(16 - 1 downto 0) := "1011010000000000"; --720 in u[16 6]
@@ -78,7 +78,7 @@ architecture Behavioral of angle_counter is
       if rst = '1' then
         x_q <= (others => '0');
       elsif (x_valid = '1') then
-        x_q <= unsigned(x);
+        x_q <= x;
       end if;
     end if;
   end process;
@@ -89,7 +89,7 @@ architecture Behavioral of angle_counter is
       if rst = '1' then
         y_q <= (others => '0');
       elsif (y_valid = '1') then
-        y_q <= unsigned(y);
+        y_q <= y;
       end if;
     end if;
   end process;
@@ -175,5 +175,5 @@ architecture Behavioral of angle_counter is
   end if;
   end process;
   
- angle <= std_logic_vector(angle_q);
-end Behavioral;
+ angle <= angle_q;
+end rtl;

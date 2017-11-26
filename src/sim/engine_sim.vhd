@@ -32,16 +32,14 @@ entity engine_sim is
 	generic(
     TEETH       : integer := 60-2;  --Number of teeth in revolution
 	  NORM_DUTY    : real := 0.425;    --Normal high/(low+high)
-	  --GAP_DUTY   : real := 0.16;     --Tooth before gap/(gap + tooth before)
-	  GAP_FACTOR   : real := 5.25;     --Gap width/tooth before gap
+    GAP_FACTOR   : real := 5.25;     --Gap width/tooth before gap
 	  POST_DUTY    : real := 0.58;      --Tooth after gap/(gap + tooth after)
 	  START_TOOTH  : integer := 1
 	);
 	port (
 		rpm         : in integer;     --Desired speed of output pulse train
 		clk_125M    : in	std_logic;  --125Mhz master clock
-		--enable      : in	std_logic;  --sampling clock
-		rst	        : in	std_logic;  --clr
+		rst	        : in	std_logic;  --synchronous global reset
 		pulse_train : out	std_logic  --simulated pulse train output
   );
 end engine_sim;

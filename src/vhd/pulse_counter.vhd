@@ -35,14 +35,14 @@ entity pulse_counter is
 		clk_125M    : in	std_logic;                      --125Mhz master clock
 		rst	        : in	std_logic;                      --global synchronous reset
 		pulse_train : in	std_logic;                      --pulse train from sensor
-		x           : out std_logic_vector(WIDTH - 1 downto 0);   --high pulse width in samples
-		y           : out std_logic_vector((WIDTH * 2) - 1 downto 0);   --low pulse width in samples
+		x           : out unsigned(WIDTH - 1 downto 0);   --high pulse width in samples
+		y           : out unsigned((WIDTH * 2) - 1 downto 0);   --low pulse width in samples
 		x_valid	    : out std_logic;                      --high pulse width ready to be read
 		y_valid	    : out std_logic                       --low pulse width ready to be read
 	);
 end pulse_counter;
 
-architecture Behavioral of pulse_counter is
+architecture rtl of pulse_counter is
   --State machine types and signal
   type STATE_TYPE is (start, count, tooth, gap, tooth_plus, gap_plus, tooth_valid, gap_valid, tooth_rst, gap_rst);
   signal state : STATE_TYPE := start;
@@ -97,7 +97,7 @@ architecture Behavioral of pulse_counter is
       end if;
     end if;      
   end process;
-  x <= std_logic_vector(x_count); --Assign component output to internal count
+  x <= x_count; --Assign component output to internal count
 
   --Counter for 'low' pulses
   YCNT: process(clk_125M)
@@ -114,7 +114,7 @@ architecture Behavioral of pulse_counter is
       end if;
     end if;      
   end process;
-  y <= std_logic_vector(y_count); --Assign component output to internal count
+  y <= y_count; --Assign component output to internal count
 	------------------------------------------------------------------------------
 	
 	--Registers-------------------------------------------------------------------
@@ -245,5 +245,5 @@ architecture Behavioral of pulse_counter is
     end case;
   end process;
 	
-end Behavioral;
+end rtl;
 

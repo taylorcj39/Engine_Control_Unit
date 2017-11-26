@@ -34,26 +34,23 @@ entity gap_synchronizer is
     TEETH         : integer := 60-2;  --teeth on wheel 
     WIDTH         : integer := 8;      --width of x,y
     EXTRA_WIDTH   : integer := 16;
-    --GAP_FACTOR    : real := 5.25
-    --GAP_FACTOR    : integer := 5
     GAP_FACTOR    : unsigned(8 - 1 downto 0) := "01010100"  --5.25 in u[8 4] format
   );
   port (
-    clk_125M        : in  std_logic;
-    rst             : in  std_logic;
-    x               : in std_logic_vector(WIDTH - 1 downto 0);
-    y               : in std_logic_vector(EXTRA_WIDTH - 1 downto 0);
+    clk_125M        : in std_logic;
+    rst             : in std_logic;
+    x               : in unsigned(WIDTH - 1 downto 0);
+    y               : in unsigned(EXTRA_WIDTH - 1 downto 0);
     x_valid         : in std_logic;
     y_valid         : in std_logic;
-    --pulse_train : in std_logic;
-    tooth_count     : in std_logic_vector(integer(ceil(log2(real(TEETH))))- 1 downto 0);
+    tooth_count     : in unsigned(integer(ceil(log2(real(TEETH))))- 1 downto 0);
     tooth_count_rst : out std_logic;
     sync            : out std_logic;
     gap_present     : out std_logic
   );
 end gap_synchronizer;
 
-architecture Behavioral of gap_synchronizer is
+architecture rtl of gap_synchronizer is
   --FSM Type and Signal
   type STATE_TYPE is (start, calc_g, reset_sync, pre_sync, sync_state, post_sync, verify);
   signal state : STATE_TYPE := start;
@@ -80,7 +77,7 @@ architecture Behavioral of gap_synchronizer is
       if rst = '1' then
         x_q <= (others => '0');
       elsif (x_valid = '1') then
-        x_q <= unsigned(x);
+        x_q <= x;
       end if;
     end if;
   end process;
@@ -91,7 +88,7 @@ architecture Behavioral of gap_synchronizer is
       if rst = '1' then
         y_q <= (others => '0');
       elsif (y_valid = '1') then
-        y_q <= unsigned(y);
+        y_q <= y;
       end if;
     end if;
   end process;
@@ -122,7 +119,7 @@ architecture Behavioral of gap_synchronizer is
           when sync_state =>
             state <= post_sync;
           when post_sync =>       --Gap has been accurately identified
-            if unsigned(tooth_count) = TOOTH_CNT_MAX then
+            if tooth_count = TOOTH_CNT_MAX then
               state <= verify;
             end if;
           when verify =>          --Check to ensure we are still synced (Currently resets tooth counter (tooth = 0 when in gap)
@@ -167,4 +164,4 @@ architecture Behavioral of gap_synchronizer is
   g_minus <= g - 5;
   --Dynamic gap tolerance would be nice (multiplication, not +/-)
     
-end Behavioral;
+end rtl;

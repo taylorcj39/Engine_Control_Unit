@@ -32,16 +32,14 @@ entity crank_angle_computer is
   generic (
     TEETH       : integer := 60 - 2;
     WIDTH       : integer := 8;
-    --GAP_FACTOR  : integer := 5
-    --GAP_FACTOR  : real := 5.25
     GAP_FACTOR    : unsigned(8 - 1 downto 0) := "01010100"  --5.25 in u[8 4] format
   );
   port (
     clk_125M    : in std_logic;           --125Mhz master clock
     rst         : in std_logic;           --global synchronous reset
     pulse_train : in std_logic;            --pulse train input from crank angle sensor
-    --tooth_count : out std_logic_vector(integer(ceil(log2(TEETH)))- 1 downto 0);
-    angle       : out std_logic_vector(16 - 1 downto 0)
+    angle       : out unsigned(16 - 1 downto 0);  --calculated crank angle in u[16 6]
+    rpm         : out unsigned(16 - 1 downto 0)   --calculated crank rpm in u[16 3]
   );
 end crank_angle_computer;
 
@@ -59,8 +57,8 @@ architecture rtl of crank_angle_computer is
   signal tooth_count        : unsigned(TOOTH_COUNT_WIDTH - 1 downto 0) := (0 => '1', others=> '0');
   
   --Pulse Counter
-  signal x        : std_logic_vector(WIDTH - 1 downto 0) := (others => '0');
-  signal y        : std_logic_vector(DOUBLE_WIDTH - 1 downto 0) := (others => '0');
+  signal x        : unsigned(WIDTH - 1 downto 0) := (others => '0');
+  signal y        : unsigned(DOUBLE_WIDTH - 1 downto 0) := (others => '0');
   signal x_valid  : std_logic := '0';                  
   signal y_valid  : std_logic := '0';                   
   
@@ -73,19 +71,16 @@ architecture rtl of crank_angle_computer is
     generic (
       TEETH       : integer := 60-2;  --teeth on wheel 
       WIDTH       : integer := 8;      --width of x,y
-      --GAP_FACTOR  : integer := 5
-      --GAP_FACTOR  : real  := 5.25
       GAP_FACTOR    : unsigned(8 - 1 downto 0) := "01010100"  --5.25 in u[8 4] format
     );
     port (
       clk_125M        : in  std_logic;
       rst             : in  std_logic;
-      x               : in std_logic_vector(WIDTH - 1 downto 0);
-      y               : in std_logic_vector((WIDTH * 2) - 1 downto 0);
+      x               : in unsigned(WIDTH - 1 downto 0);
+      y               : in unsigned((WIDTH * 2) - 1 downto 0);
       x_valid         : in std_logic;
       y_valid         : in std_logic;
-      --pulse_train : in std_logic;
-      tooth_count     : in std_logic_vector(integer(ceil(log2(real(TEETH))))- 1 downto 0);
+      tooth_count     : in unsigned(integer(ceil(log2(real(TEETH))))- 1 downto 0);
       tooth_count_rst : out std_logic;
       sync            : out std_logic;
       gap_present     : out std_logic
@@ -103,14 +98,14 @@ architecture rtl of crank_angle_computer is
     port (
       clk_125M    : in std_logic;          --125Mhz master clock
       rst         : in std_logic;          --global synchronous reset
-      x           : in std_logic_vector(WIDTH - 1 downto 0);
-      y           : in std_logic_vector(WIDTH*2 - 1 downto 0);
+      x           : in unsigned(WIDTH - 1 downto 0);
+      y           : in unsigned(WIDTH*2 - 1 downto 0);
       x_valid     : in std_logic;
       y_valid     : in std_logic;
       sync        : in std_logic;
       gap_present : in std_logic;          --signal from gsynchronizer
       --tooth_count : in std_logic_vector(integer(ceil(log2(real(TEETH))))- 1 downto 0);
-      angle       : out std_logic_vector(16 - 1 downto 0) --[16 6] unsigned fixed point 
+      angle       : out unsigned(16 - 1 downto 0) --[16 6] unsigned fixed point 
     );
   end component;
   
@@ -121,10 +116,25 @@ architecture rtl of crank_angle_computer is
       clk_125M    : in  std_logic;                      --125Mhz master clock
       rst         : in  std_logic;                     --global synchronous reset
       pulse_train : in  std_logic;                      --pulse train from sensor
-      x           : out std_logic_vector(WIDTH - 1 downto 0);   --high pulse width in samples
-      y           : out std_logic_vector((WIDTH * 2) - 1 downto 0);   --low pulse width in samples
+      x           : out unsigned(WIDTH - 1 downto 0);   --high pulse width in samples
+      y           : out unsigned((WIDTH * 2) - 1 downto 0);   --low pulse width in samples
       x_valid     : out std_logic;                     --high pulse width ready to be read
       y_valid     : out std_logic                      --low pulse width ready to be read
+    );
+  end component;
+  
+  --RPM calculator component, computes rpm based on tooth width
+  component rpm_calculator
+    generic (
+      X_WIDTH   : integer := 8;
+      RPM_WIDTH : integer := 16
+    );
+    port (
+      clk_125M  : in std_logic;
+      rst       : in std_logic;
+      x         : in unsigned(X_WIDTH - 1 downto 0);  --Input X width in sampling clk ticks
+      x_valid   : in std_logic;
+      rpm       : out unsigned(RPM_WIDTH - 1 downto 0) --Output rpm in u[16 6] format
     );
   end component;
   
@@ -179,7 +189,7 @@ architecture rtl of crank_angle_computer is
     x_valid         => x_valid,
     y_valid         => y_valid,
     tooth_count_rst => tooth_count_rst,
-    tooth_count     => std_logic_vector(tooth_count),
+    tooth_count     => tooth_count,
     sync            => sync,
     gap_present     => gap_present
   );
@@ -203,5 +213,20 @@ architecture rtl of crank_angle_computer is
     gap_present => gap_present,
     --tooth_count => --tooth_count,
     angle       => angle
-  );                            
+  );
+  
+  --RPM Calculator
+  RPM_CALC : rpm_calculator
+  generic map(
+    X_WIDTH   => WIDTH,
+    RPM_WIDTH => DOUBLE_WIDTH
+  )
+  port map(
+    clk_125M  => clk_125M,
+    rst       => rst,
+    x         => x,
+    x_valid   => x_valid,
+    rpm       => rpm
+  );
+                             
 end rtl;
