@@ -24,10 +24,10 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
-entity pwm_fsm is
+entity peripheral_interface is
     Port ( clk_125M : in STD_LOGIC;
            rst : in STD_LOGIC;
-           enab: in std_logic;
+           enable: in std_logic;
            duty : in STD_LOGIC_VECTOR (7 downto 0);
            pulse : in STD_LOGIC_VECTOR (15 downto 0);
            pwm_ch : in std_logic_vector(2 downto 0);
@@ -38,9 +38,9 @@ entity pwm_fsm is
            pwm_out_ch2 : out STD_LOGIC;
            pwm_out_ch3 : out STD_LOGIC;
            pwm_out_ch4 : out STD_LOGIC);
-end pwm_fsm;
+end peripheral_interface;
 
-architecture Behavioral of pwm_fsm is
+architecture rtl of peripheral_interface is
 
 component pwm_ctrl
 	port (
@@ -207,9 +207,9 @@ PWM_Channel : process(clk_125M, rst) begin
           end process;                    
    
     
-ch1_pwm: teknik_ctrl port map(clk_125M=>clk_125M,rst=>rst, duty_cycle=>duty_ch1, pulse_cnt=>pulse_ch1 , enab => pwm_ch1_en ,pulse_out=>pwm_out_ch1, sclr=>sclr1);     
-ch2_pwm: teknik_ctrl port map(clk_125M=>clk_125M,rst=>rst, duty_cycle=>duty_ch2, pulse_cnt=>pulse_ch2 , enab => pwm_ch2_en, pulse_out=>pwm_out_ch2, sclr=>sclr2);
-ch3_pwm: teknik_ctrl port map(clk_125M=>clk_125M,rst=>rst, duty_cycle=>duty_ch3, pulse_cnt=>pulse_ch3 ,enab => pwm_ch3_en, pulse_out=>pwm_out_ch3 , sclr=>sclr3);
-ch4_pwm: teknik_ctrl port map(clk_125M=>clk_125M,rst=>rst, duty_cycle=>duty_ch4, pulse_cnt=>pulse_ch4 , enab => pwm_ch4_en, pulse_out=>pwm_out_ch4, sclr=>sclr4);       
+ch1_pwm: pwm_ctrl port map(clk_125M=>clk_125M,rst=>rst, duty_cycle=>duty_ch1, pulse_cnt=>pulse_ch1 , enable => pwm_ch1_en ,pulse_out=>pwm_out_ch1, sclr=>sclr1);     
+ch2_pwm: pwm_ctrl port map(clk_125M=>clk_125M,rst=>rst, duty_cycle=>duty_ch2, pulse_cnt=>pulse_ch2 , enable => pwm_ch2_en, pulse_out=>pwm_out_ch2, sclr=>sclr2);
+ch3_pwm: pwm_ctrl port map(clk_125M=>clk_125M,rst=>rst, duty_cycle=>duty_ch3, pulse_cnt=>pulse_ch3 ,enable => pwm_ch3_en, pulse_out=>pwm_out_ch3 , sclr=>sclr3);
+ch4_pwm: pwm_ctrl port map(clk_125M=>clk_125M,rst=>rst, duty_cycle=>duty_ch4, pulse_cnt=>pulse_ch4 , enable => pwm_ch4_en, pulse_out=>pwm_out_ch4, sclr=>sclr4);       
      
 end rtl;

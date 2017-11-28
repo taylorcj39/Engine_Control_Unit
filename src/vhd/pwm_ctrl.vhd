@@ -31,9 +31,9 @@ use IEEE.math_real.all;
 entity pwm_ctrl is
 	port (
 		clk_125M 		:	in STD_LOGIC;
-		rst 				:		in STD_LOGIC;
+		rst 				:	in STD_LOGIC;
 		duty_cycle	:	in STD_LOGIC_VECTOR (7 downto 0);
-		pulse_cnt 	: in STD_LOGIC_VECTOR (15 downto 0);	--# of mclk ticks in 1 period
+		pulse_cnt 	: in unsigned (15 downto 0);	--# of mclk ticks in 1 period
 		enable			: in std_logic;
 		sclr				: in std_logic;				
 		pulse_out 	:	out STD_LOGIC	--Output PWM signal
@@ -69,10 +69,10 @@ begin
 			       dutylow<= X"0000";
 			   end if;
 			   
-				calchigh <= unsigned(pulse_cnt) * unsigned(duty_cycle);
+				calchigh <= pulse_cnt * unsigned(duty_cycle);
 				interhigh <= SHIFT_RIGHT(calchigh,7) + SHIFT_RIGHT(calchigh, 9) + SHIFT_RIGHT(calchigh, 12);	--?
 				dutyhigh <= interhigh(15 downto 0);
-				dutylow <= unsigned(pulse_cnt) - dutyhigh;
+				dutylow <= pulse_cnt - dutyhigh;
 			end if;
 		end if;
 	end process;
@@ -89,7 +89,7 @@ begin
 	end process;
 	
 	-- FSM forCreating the actual pulse based on the counts of high and low
-	PULSE_FSM : process(clk_125M, rst) begin
+	PULSE_FSM : process(clk_125M) begin
 		if rising_edge(clk_125M) then
 			if rst = '1' then
 				state <= start;
