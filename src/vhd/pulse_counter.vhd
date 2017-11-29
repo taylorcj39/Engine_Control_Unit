@@ -20,7 +20,8 @@
 -- Revisions  :
 -- Date				 Version	Author    Description
 -- 2017-10-14  1.0      CT        Created
--- 2017-18-18  1.1      CT        Doubled width of y to hold length of gap 
+-- 2017-10-18  1.1      CT        Doubled width of y to hold length of gap 
+-- 2017-11-12  1.1      CT        Changed output x, y from U to SLV 
 -------------------------------------------------------------------------------
 
 library IEEE;
@@ -41,7 +42,7 @@ entity pulse_counter is
 	);
 end pulse_counter;
 
-architecture Behavioral of pulse_counter is
+architecture rtl of pulse_counter is
   --State machine types and signal
   type STATE_TYPE is (start, count, tooth, gap, tooth_plus, gap_plus, tooth_valid, gap_valid, tooth_rst, gap_rst);
   signal state : STATE_TYPE := start;
@@ -244,5 +245,5 @@ architecture Behavioral of pulse_counter is
     end case;
   end process;
 	
-end Behavioral;
+end rtl;
 

@@ -16,8 +16,9 @@
 -- 
 -------------------------------------------------------------------------------
 -- Revisions  :
--- Date				Version	Author	Description
--- 2017-10-14	1.0			CT			Created
+-- Date				  Version	 Author	 Description
+-- 2017-10-14	  1.0			 CT			 Created
+-- 2017-11-12   1.1      CT      Added functionality for angle counter
 -------------------------------------------------------------------------------
 
 library IEEE;
@@ -28,7 +29,7 @@ use IEEE.math_real.all;
 entity engine_sim_top_tb is
 end engine_sim_top_tb;
 
-architecture Behavioral of engine_sim_top_tb is
+architecture rtl of engine_sim_top_tb is
   --Component to be simulated
   component engine_sim_top
     generic (WIDTH : integer := 8);
@@ -45,7 +46,7 @@ architecture Behavioral of engine_sim_top_tb is
   signal rst : std_logic := '1';
   signal clk_125M : std_logic := '0';
   
-  constant CLK_125M_PERIOD : time := 8ns;
+  constant CLK_125M_PERIOD : time := 8 ns;
   
   begin
   
@@ -64,8 +65,8 @@ architecture Behavioral of engine_sim_top_tb is
     wait for CLK_125M_PERIOD * 3;
     rst <= '0';
     wait for 13ms;
-    rpm <= 1000;
+    --rpm <= 1000;
     wait for 13ms;
   end process;
   
-end Behavioral;
+end rtl;
