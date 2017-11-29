@@ -32,7 +32,7 @@ entity pwm_ctrl is
 	port (
 		clk_125M 		:	in STD_LOGIC;
 		rst 				:	in STD_LOGIC;
-		duty_cycle	:	in STD_LOGIC_VECTOR (7 downto 0);
+		duty_cycle	:	in unsigned(7 downto 0);  --unsigned duty cycle 0-100
 		pulse_cnt 	: in unsigned (15 downto 0);	--# of mclk ticks in 1 period
 		enable			: in std_logic;
 		sclr				: in std_logic;				
@@ -58,7 +58,7 @@ architecture rtl of pwm_ctrl is
 
 begin
 	-- Generates a tick count based on the Duty cycle
-	COUNT_GEN : process(clk_125M, rst, duty_cycle, pulse_cnt) begin
+	COUNT_GEN : process(clk_125M) begin
 		if rising_edge(clk_125M) then
 			if rst = '1' then
 				dutyhigh <= X"0000";
@@ -69,7 +69,7 @@ begin
 			       dutylow<= X"0000";
 			   end if;
 			   
-				calchigh <= pulse_cnt * unsigned(duty_cycle);
+				calchigh <= pulse_cnt * duty_cycle;
 				interhigh <= SHIFT_RIGHT(calchigh,7) + SHIFT_RIGHT(calchigh, 9) + SHIFT_RIGHT(calchigh, 12);	--?
 				dutyhigh <= interhigh(15 downto 0);
 				dutylow <= pulse_cnt - dutyhigh;
