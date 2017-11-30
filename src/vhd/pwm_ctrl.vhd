@@ -72,7 +72,8 @@ begin
 				calchigh <= pulse_cnt * duty_cycle;
 				interhigh <= SHIFT_RIGHT(calchigh,7) + SHIFT_RIGHT(calchigh, 9) + SHIFT_RIGHT(calchigh, 12);	--?
 				dutyhigh <= interhigh(15 downto 0);
-				dutylow <= pulse_cnt - dutyhigh;
+				--dutylow <= pulse_cnt - dutyhigh;
+				dutylow <= pulse_cnt - interhigh(15 downto 0);
 			end if;
 		end if;
 	end process;
