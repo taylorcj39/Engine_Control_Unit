@@ -35,11 +35,12 @@ entity crank_angle_computer is
     GAP_FACTOR    : unsigned(8 - 1 downto 0) := "01010100"  --5.25 in u[8 4] format
   );
   port (
-    clk_125M    : in std_logic;           --125Mhz master clock
-    rst         : in std_logic;           --global synchronous reset
-    pulse_train : in std_logic;            --pulse train input from crank angle sensor
-    angle       : out unsigned(16 - 1 downto 0);  --calculated crank angle in u[16 6]
-    rpm         : out unsigned(16 - 1 downto 0)   --calculated crank rpm in u[16 3]
+    clk_125M      : in std_logic;           --125Mhz master clock
+    rst           : in std_logic;           --global synchronous reset
+    pulse_train   : in std_logic;            --pulse train input from crank angle sensor
+    sync_achieved : out std_logic;           --sync is achieved signal
+    angle         : out unsigned(16 - 1 downto 0);  --calculated crank angle in u[16 6]
+    rpm           : out unsigned(16 - 1 downto 0)   --calculated crank rpm in u[16 3]
   );
 end crank_angle_computer;
 
@@ -139,6 +140,8 @@ architecture rtl of crank_angle_computer is
   end component;
   
   begin
+
+  sync_achieved <= sync;  --assign sync output
 
   --Falling Edge Tooth Counter (Starts at 0, has to be manually reset to 1)--------------------------------------------------------------- 
   TOOTH_CNT : process(clk_125M)

@@ -68,25 +68,46 @@ architecture rtl of engine_sim_top is
     port (
       clk_125M    : in std_logic;           --125Mhz master clock
       rst         : in std_logic;           --global synchronous reset
-      pulse_train : in std_logic;            --pulse train input from crank angle sensor
-      angle       : out unsigned(16 - 1 downto 0)
+      pulse_train   : in std_logic;            --pulse train input from crank angle sensor
+      sync_achieved : out std_logic;           --sync is achieved signalpulse_train : in std_logic;            --pulse train input from crank angle sensor
+      angle       : out unsigned(16 - 1 downto 0);  --calculated crank angle in u[16 6]
+      rpm         : out unsigned(16 - 1 downto 0)   --calculated crank rpm in u[16 3]
+    );
+  end component;
+  
+  component servo_ctrl is
+    generic (
+      RPM_WIDTH   : integer := 16;
+      ANGLE_WIDTH : integer := 16
+    );
+    port (
+      clk_125M      : in std_logic;
+      nrst          : in std_logic;  --global synchronous inverted reset (acts as enable)
+      sync          : in std_logic;
+      timing_input  : in signed(4 - 1 downto 0);
+      angle         : in unsigned(RPM_WIDTH - 1 downto 0); 
+      engine_rpm    : in unsigned(RPM_WIDTH - 1 downto 0);
+      servo_pwm     : out std_logic
     );
   end component;
   
   --Internal Signals and Constants----------------------------------------------
   signal pulse_train  : std_logic := '0';
   signal angle        : unsigned(16 - 1 downto 0) := (others => '0'); --is this necessary?
+  signal engine_rpm   : unsigned(16 - 1 downto 0) := (others => '0'); --is this necessary?
+  signal sync         : std_logic := '0';
+  signal servo_en     : std_logic := '0';
+  signal servo_pwm    : std_logic := '0';
   
   begin  
-  --External Assignments--------------------------------------------------------
+  
+  servo_en <= not rst;
   
   --Component Instantiation-----------------------------------------------------
+  
   --Engine simulator
   ENG_SIM : engine_sim
---  generic map (
---    TEETH => 60 - 2,
---    GAP_DUTY => 0.16,
---    DUTY => 0.425)
+  --using defaults for generics
   port map (
     clk_125M    => '1',--clk_125M,
     rpm         => rpm,
@@ -101,10 +122,31 @@ architecture rtl of engine_sim_top is
     WIDTH      => 8
   )
   port map (
-    clk_125M    => clk_125M,
-    rst         => rst,
-    pulse_train => pulse_train,
-    angle       => angle
+    clk_125M      => clk_125M,
+    rst           => rst,
+    pulse_train   => pulse_train,
+    sync_achieved => sync,
+    angle         => angle,
+    rpm           => engine_rpm
   );
+  
+  --Servo controller
+  SERVO : servo_ctrl
+  generic map (  
+      RPM_WIDTH   => 16,
+      ANGLE_WIDTH => 16
+    )             
+  port map (         
+    clk_125M      => clk_125M,
+    nrst          => servo_en,
+    sync          => sync,
+    timing_input  => (others => '0'),
+    angle         => angle,
+    engine_rpm    => engine_rpm,
+    servo_pwm     => servo_pwm
+  );             
+  
+  
+  
   
 end rtl;
