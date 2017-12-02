@@ -6,14 +6,15 @@
 -- Author     : Robert McInerney
 -- Company    : 
 -- Created    : 2017-11-26
--- Last update: 2017-11-28
+-- Last update: 2017-12-02
 -- Platform   : 
 -- Standard   : VHDL'87
 -------------------------------------------------------------------------------
 -- Description: Sets up up to 4 I/Os for perephirals
 -------------------------------------------------------------------------------
 -- Notes:
---  
+--  (12-02-17) Updated some types from SLV to unsigned
+--              Maybe use invert?
 -------------------------------------------------------------------------------
 -- Revisions  :
 -- Date			    Version	  Author    Description
@@ -23,21 +24,26 @@
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.numeric_std.all;
+use IEEE.math_real.all;
 
 entity peripheral_interface is
-    Port ( clk_125M : in STD_LOGIC;
-           rst : in STD_LOGIC;
-           enable: in std_logic;
-           duty : in STD_LOGIC_VECTOR (7 downto 0);
-           pulse : in STD_LOGIC_VECTOR (15 downto 0);
-           pwm_ch : in std_logic_vector(2 downto 0);
-           angle_start: in std_logic_vector(15 downto 0);
-           angle_stop: in std_logic_vector(15 downto 0);
-           current_angle: in std_logic_vector(15 downto 0);
-           pwm_out_ch1 : out STD_LOGIC;
-           pwm_out_ch2 : out STD_LOGIC;
-           pwm_out_ch3 : out STD_LOGIC;
-           pwm_out_ch4 : out STD_LOGIC);
+    Port ( 
+			clk_125M 			: in STD_LOGIC;
+      rst 					: in STD_LOGIC;
+      --enab: in std_logic;
+      duty 					: in unsigned(8 - 1 downto 0);
+      --invert        : in std_logic;
+      pulse 				: in unsigned(16 - 1 downto 0);
+      pwm_ch 				: in unsigned(3 - 1 downto 0);
+      angle_start		: in unsigned(16 - 1 downto 0);
+      angle_stop		: in unsigned(16 - 1 downto 0);
+      current_angle	: in unsigned(16 - 1 downto 0);
+      pwm_out_ch0 	: out STD_LOGIC;
+			pwm_out_ch1 	: out STD_LOGIC;
+      pwm_out_ch2 	: out STD_LOGIC;
+      pwm_out_ch3 	: out STD_LOGIC
+		);
 end peripheral_interface;
 
 architecture rtl of peripheral_interface is
@@ -46,8 +52,8 @@ component pwm_ctrl
 	port (
 		clk_125M 		:	in STD_LOGIC;
 		rst 				:	in STD_LOGIC;
-		duty_cycle	:	in STD_LOGIC_VECTOR (7 downto 0);
-		pulse_cnt 	: in STD_LOGIC_VECTOR (15 downto 0);	--# of mclk ticks in 1 period
+		duty_cycle	:	in unsigned(7 downto 0);  --unsigned duty cycle 0-100
+		pulse_cnt 	: in unsigned (15 downto 0);	--# of mclk ticks in 1 period
 		enable			: in std_logic;
 		sclr				: in std_logic;				
 		pulse_out 	:	out STD_LOGIC	--Output PWM signal
@@ -61,39 +67,42 @@ signal y: state;
 signal pwm_ch1_en: std_logic;
 signal pwm_ch2_en: std_logic;
 signal pwm_ch3_en: std_logic;
-signal pwm_ch4_en: std_logic;
+signal pwm_ch0_en: std_logic;
 
-signal sclr1: std_logic;
-signal sclr2: std_logic;
-signal sclr3: std_logic;
-signal sclr4: std_logic;
+signal sclr1 : std_logic;
+signal sclr2 : std_logic;
+signal sclr3 : std_logic;
+signal sclr0 : std_logic;
 
-signal duty_ch1: std_logic_vector(7 downto 0);
-signal duty_ch2: std_logic_vector(7 downto 0);
-signal duty_ch3: std_logic_vector(7 downto 0);
-signal duty_ch4: std_logic_vector(7 downto 0);
-signal pulse_ch1: std_logic_vector(15 downto 0);
-signal pulse_ch2: std_logic_vector(15 downto 0);
-signal pulse_ch3: std_logic_vector(15 downto 0);
-signal pulse_ch4: std_logic_vector(15 downto 0);
+signal duty_ch1   : unsigned(7 downto 0);
+signal duty_ch2   : unsigned(7 downto 0);
+signal duty_ch3   : unsigned(7 downto 0);
+signal duty_ch0   : unsigned(7 downto 0);
+signal pulse_ch1  : unsigned(15 downto 0);
+signal pulse_ch2  : unsigned(15 downto 0);
+signal pulse_ch3  : unsigned(15 downto 0);
+signal pulse_ch0  : unsigned(15 downto 0);
 
-signal angle_start_1: std_logic_vector(15 downto 0);
-signal angle_stop_1: std_logic_vector(15 downto 0);
-signal angle_start_2: std_logic_vector(15 downto 0);
-signal angle_stop_2: std_logic_vector(15 downto 0);
-signal angle_start_3: std_logic_vector(15 downto 0);
-signal angle_stop_3: std_logic_vector(15 downto 0);
-signal angle_start_4: std_logic_vector(15 downto 0);
-signal angle_stop_4: std_logic_vector(15 downto 0);
+signal angle_start_1: unsigned(16 - 1 downto 0);
+signal angle_stop_1: unsigned(16 - 1 downto 0);
+signal angle_start_2: unsigned(16 - 1 downto 0);
+signal angle_stop_2: unsigned(16 - 1 downto 0);
+signal angle_start_3: unsigned(16 - 1 downto 0);
+signal angle_stop_3: unsigned(16 - 1 downto 0);
+signal angle_start_0: unsigned(16 - 1 downto 0);
+signal angle_stop_0: unsigned(16 - 1 downto 0);
 
 begin
 
 
 PWM_Channel : process(clk_125M, rst) begin
 		
-     if rst = '1' then y <= s1;
-     elsif(clk_125M'event and clk_125M = '1') then 
-     case y is 
+    
+     if rising_edge(clk_125M) then 
+        if rst = '1' then
+            y <= s1;
+        else 
+        case y is 
         
         when S1 =>
                 if(pwm_ch = "001") then
@@ -116,22 +125,22 @@ PWM_Channel : process(clk_125M, rst) begin
                     angle_stop_3 <= angle_stop;
                  end if;
                  if(pwm_ch = "100") then
-                      duty_ch4 <= duty;
-                      pulse_ch4 <= pulse;
-                      angle_start_4 <= angle_start;
-                      angle_stop_4 <= angle_stop;
-                 end if;
-                 
+                      duty_ch0 <= duty;
+                      pulse_ch0 <= pulse;
+                      angle_start_0 <= angle_start;
+                      angle_stop_0 <= angle_stop;
+                 end if;    
      end case;
+     end if;
      end if;
      end process;     
      
      
-     Outputs: process(clk_125M, y, pwm_ch)
+     Outputs: process(clk_125M, y, pwm_ch, angle_start_1, angle_start_2, angle_start_3,angle_start_0, angle_stop_1, angle_stop_2,angle_stop_3,angle_stop_0,current_angle)
      begin
      
-         pwm_ch1_en <= '0'; pwm_ch2_en <= '0'; pwm_ch3_en <= '0'; pwm_ch4_en <= '0';
-         sclr1 <= '0'; sclr2 <= '0'; sclr3 <= '0'; sclr4 <= '0'; 
+         pwm_ch1_en <= '0'; pwm_ch2_en <= '0'; pwm_ch3_en <= '0'; pwm_ch0_en <= '0';
+         sclr1 <= '0'; sclr2 <= '0'; sclr3 <= '0'; sclr0 <= '0'; 
          
          case y is
              when S1 =>
@@ -146,7 +155,7 @@ PWM_Channel : process(clk_125M, rst) begin
              --            
              --    end if;
              --    if(pwm_ch = "100") then
-             --            pwm_ch4_en <= '1';
+             --            pwm_ch0_en <= '1';
                          
            --      end if;
              
@@ -187,16 +196,16 @@ PWM_Channel : process(clk_125M, rst) begin
               sclr3<= '1';
           end if;                   
                             
-       if(angle_start_4 < current_angle)then
-               pwm_ch4_en <= '1';
+       if(angle_start_0 < current_angle)then
+               pwm_ch0_en <= '1';
          else
-               sclr4<= '1';
+               sclr0<= '1';
          end if;
            
-         if(angle_stop_4 > current_angle) then
-                pwm_ch4_en<= '1';
+         if(angle_stop_0 > current_angle) then
+                pwm_ch0_en<= '1';
          else 
-              sclr4<= '1';
+              sclr0<= '1';
           end if;                   
                        
          
@@ -207,9 +216,9 @@ PWM_Channel : process(clk_125M, rst) begin
           end process;                    
    
     
-ch1_pwm: pwm_ctrl port map(clk_125M=>clk_125M,rst=>rst, duty_cycle=>duty_ch1, pulse_cnt=>pulse_ch1 , enable => pwm_ch1_en ,pulse_out=>pwm_out_ch1, sclr=>sclr1);     
-ch2_pwm: pwm_ctrl port map(clk_125M=>clk_125M,rst=>rst, duty_cycle=>duty_ch2, pulse_cnt=>pulse_ch2 , enable => pwm_ch2_en, pulse_out=>pwm_out_ch2, sclr=>sclr2);
-ch3_pwm: pwm_ctrl port map(clk_125M=>clk_125M,rst=>rst, duty_cycle=>duty_ch3, pulse_cnt=>pulse_ch3 ,enable => pwm_ch3_en, pulse_out=>pwm_out_ch3 , sclr=>sclr3);
-ch4_pwm: pwm_ctrl port map(clk_125M=>clk_125M,rst=>rst, duty_cycle=>duty_ch4, pulse_cnt=>pulse_ch4 , enable => pwm_ch4_en, pulse_out=>pwm_out_ch4, sclr=>sclr4);       
+ch1_pwm : pwm_ctrl port map(clk_125M=>clk_125M,rst=>rst, duty_cycle=>duty_ch1, pulse_cnt=>pulse_ch1 , enable => pwm_ch1_en ,pulse_out=>pwm_out_ch1, sclr=>sclr1);     
+ch2_pwm : pwm_ctrl port map(clk_125M=>clk_125M,rst=>rst, duty_cycle=>duty_ch2, pulse_cnt=>pulse_ch2 , enable => pwm_ch2_en, pulse_out=>pwm_out_ch2, sclr=>sclr2);
+ch3_pwm : pwm_ctrl port map(clk_125M=>clk_125M,rst=>rst, duty_cycle=>duty_ch3, pulse_cnt=>pulse_ch3 ,enable => pwm_ch3_en, pulse_out=>pwm_out_ch3 , sclr=>sclr3);
+ch0_pwm : pwm_ctrl port map(clk_125M=>clk_125M,rst=>rst, duty_cycle=>duty_ch0, pulse_cnt=>pulse_ch0 , enable => pwm_ch0_en, pulse_out=>pwm_out_ch0, sclr=>sclr0);       
      
 end rtl;

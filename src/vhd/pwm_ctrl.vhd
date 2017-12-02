@@ -6,7 +6,7 @@
 -- Author     : Constantin Lacraru
 -- Company    : 
 -- Created    : 2017-11-20
--- Last update: 2017-11-28
+-- Last update: 2017-11-29
 -- Platform   : 
 -- Standard   : VHDL'87
 -------------------------------------------------------------------------------
@@ -20,6 +20,7 @@
 -- 2017-11-20   1.0       CL        Created
 -- 2017-11-26   1.1       RM        Added enable and sclr
 -- 2017-11-28   1.2       CT        Updated name and formatting
+-- 2017-11-29		1.21			CL				Fixed bug during rpm change
 -------------------------------------------------------------------------------
 
 
@@ -55,6 +56,7 @@ architecture rtl of pwm_ctrl is
 	signal count :	    unsigned(15 downto 0) := X"0001";
 	signal temporal :	STD_LOGIC := '0';
 	signal t_flag : STD_LOGIC := '0';
+	signal regpulse : unsigned(15 downto 0) := X"0000";
 
 begin
 	-- Generates a tick count based on the Duty cycle
@@ -81,8 +83,14 @@ begin
 	-- Counter itself
 	COUNTER : process(clk_125M) begin
 	   if rising_edge(clk_125M) then
+	       regpulse <= pulse_cnt;
 	       if t_flag = '1' and pulse_cnt /= X"0000" then
-	           count <= count + X"0001";
+--	           count <= count + X"0001";
+	           if dutyhigh > count and regpulse /= pulse_cnt then
+	               count <= X"0001";
+	           else
+	               count <= count + X"0001";
+	           end if;
 	       else
 	           count <= X"0001";
 	       end if;
