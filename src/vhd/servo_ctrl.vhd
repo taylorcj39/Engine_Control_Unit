@@ -52,7 +52,7 @@ architecture rtl of servo_ctrl is
   signal intermediate : unsigned(32 - 1 downto 0) := (others => '0');
   signal pulse_count : unsigned(16 - 1 downto 0) := (others => '0');
   signal intermediate_q : signed(32 - 1 downto 0) := (others => '0');
-  signal engine_rpm_q : signed(32 - 1 downto 0) := (others => '0');
+  signal desired_rpm_q : signed(32 - 1 downto 0) := (others => '0');
   signal div_v  : std_logic := '0';
   
   signal drive_pwm : std_logic := '0';
@@ -74,19 +74,19 @@ architecture rtl of servo_ctrl is
     );
   end component;
   
-  component div_restoring is
+  component pipelined_divider
     generic (
-      N : integer := 16
-    );
-    port(
-        clk  : in  std_logic;
-        rst  : in  std_logic;
-        go   : in  std_logic;
-        x    : in  signed(N - 1 downto 0);
-        d    : in  signed(N - 1 downto 0);
-        q    : out signed(N - 1 downto 0);
-        done : out std_logic
-    );
+      N: INTEGER:= 16; -- N >= M
+      M: INTEGER:= 16);
+    port (
+      A: in std_logic_vector(N-1 downto 0);
+      B: in std_logic_vector(M-1 downto 0);
+      clock, rst: in std_logic;
+      E: in std_logic;
+      Q: out std_logic_vector (N-1 downto 0);
+      R: out std_logic_vector(M-1 downto 0);
+      v: out std_logic
+  );
   end component;
   
   begin
@@ -135,21 +135,23 @@ architecture rtl of servo_ctrl is
   );
   
   --Divider
-  DIV : div_restoring
-  generic map (
-    N => 32
-  )
-  port map (
-    clk  => clk_125M,
-    rst  => rst,
-    go   => '1',
-    x    => signed(std_logic_vector(NUM)),
-    d    => engine_rpm_q,
-    q    => intermediate_q, --no div/0 protection
-    done => div_v
+  DIV : pipelined_divider
+    generic map (   
+      N => 32,
+      M => 32
+    )
+    port map (      
+      A => std_logic_vector(NUM),
+      B => std_logic_vector(desired_rpm_q), 
+      clock => clk_125M,
+      rst => rst,
+      E => sync,
+      unsigned(Q) => intermediate_q,
+      R => open,
+      v => div_v
   );
   
-  engine_rpm_q <= signed(std_logic_vector(X"0000" & engine_rpm));
+  desired_rpm_q <= signed(std_logic_vector(X"0000" & desired_rpm));
   intermediate <= unsigned(std_logic_vector(intermediate_q));
   servo_pwm <= drive_pwm when servo_en  = '1' else '0'; --Current motor has no "servoing capabilities, so "open pos" = off
 end rtl;
