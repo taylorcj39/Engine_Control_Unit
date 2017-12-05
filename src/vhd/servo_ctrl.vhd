@@ -51,6 +51,9 @@ architecture rtl of servo_ctrl is
   signal desired_rpm : unsigned(16 - 1 downto 0) := (others => '0');
   signal intermediate : unsigned(32 - 1 downto 0) := (others => '0');
   signal pulse_count : unsigned(16 - 1 downto 0) := (others => '0');
+  signal intermediate_q : signed(32 - 1 downto 0) := (others => '0');
+  signal engine_rpm_q : signed(32 - 1 downto 0) := (others => '0');
+  signal div_v  : std_logic := '0';
   
   signal drive_pwm : std_logic := '0';
   signal start_angle_v : std_logic := '0';
@@ -59,7 +62,7 @@ architecture rtl of servo_ctrl is
   signal rst : std_logic := '0';
   
   --Component Decleration
-  component pwm_ctrl is
+  component pwm_ctrl
     port (
       clk_125M    : in STD_LOGIC;
       rst         : in STD_LOGIC;
@@ -71,15 +74,31 @@ architecture rtl of servo_ctrl is
     );
   end component;
   
+  component div_restoring is
+    generic (
+      N : integer := 16
+    );
+    port(
+        clk  : in  std_logic;
+        rst  : in  std_logic;
+        go   : in  std_logic;
+        x    : in  signed(N - 1 downto 0);
+        d    : in  signed(N - 1 downto 0);
+        q    : out signed(N - 1 downto 0);
+        done : out std_logic
+    );
+  end component;
+  
   begin
   
   rst <= not nrst;
   
   --Calculate pulse_count
-  desired_rpm <= (engine_rpm / 4) when timing_input = "0000" else (engine_rpm / 4);  --Only works for nominal operation currently
-  intermediate <= (NUM / desired_rpm) when desired_rpm /= X"00000000" else (others => '0'); --safeguard for div/0
-  pulse_count <= shift_right(intermediate(16 - 1 downto 0),2);  --unsure why shift 2 rather than shift 3
-  
+  desired_rpm <= shift_right(engine_rpm,2) when timing_input = "0000" else (engine_rpm / 4);  --Only works for nominal operation currently
+--  intermediate <= (NUM / desired_rpm) when desired_rpm /= X"00000000" else (others => '0'); --safeguard for div/0
+  --pulse_count <= shift_right(intermediate(16 - 1 downto 0),2);  --unsure why shift 2 rather than shift 3
+  --pulse_count <= X"0FE2";
+--  
   START_ANGLE_REG : process(clk_125M)
   begin
     if rising_edge(clk_125M) then
@@ -91,6 +110,17 @@ architecture rtl of servo_ctrl is
     end if;
   end process;
   start_angle_v <= '1' when angle <= START_ANGLE + X_DEG and angle >= START_ANGLE - X_DEG else '0'; 
+  
+  RPM_DIV_REG : process(clk_125M)
+  begin
+    if rising_edge(clk_125M) then
+      if rst = '1' then
+        pulse_count <= (others => '0');   
+      elsif div_v = '1' then
+        pulse_count <= shift_right(intermediate(16 - 1 downto 0),2);
+      end if;
+    end if;
+  end process;
    
   --Component instantiation
   PWM : pwm_ctrl
@@ -104,5 +134,22 @@ architecture rtl of servo_ctrl is
     pulse_out  => drive_pwm
   );
   
+  --Divider
+  DIV : div_restoring
+  generic map (
+    N => 32
+  )
+  port map (
+    clk  => clk_125M,
+    rst  => rst,
+    go   => '1',
+    x    => signed(std_logic_vector(NUM)),
+    d    => engine_rpm_q,
+    q    => intermediate_q, --no div/0 protection
+    done => div_v
+  );
+  
+  engine_rpm_q <= signed(std_logic_vector(X"0000" & engine_rpm));
+  intermediate <= unsigned(std_logic_vector(intermediate_q));
   servo_pwm <= drive_pwm when servo_en  = '1' else '0'; --Current motor has no "servoing capabilities, so "open pos" = off
 end rtl;

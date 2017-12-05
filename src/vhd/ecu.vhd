@@ -118,7 +118,7 @@ architecture rtl of ecu is
   --Component Instantiations-----------------------------------------------------
   
   --Angle Computer
-  ANGLE_CPU : crank_angle_computer
+  CPU : crank_angle_computer
   generic map (
     TEETH      => 60-2,
     WIDTH      => 8
@@ -129,7 +129,7 @@ architecture rtl of ecu is
     pulse_train   => pulse_train,
     sync_achieved => sync,
     angle         => engine_angle,
-    rpm           => engine_rpm
+    rpm           => rpm
   );
   
   --peripheral interface

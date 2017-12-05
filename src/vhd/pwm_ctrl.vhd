@@ -49,26 +49,26 @@ architecture rtl of pwm_ctrl is
   --constants
 
 	-- Signals
-	signal dutyhigh :	unsigned(15 downto 0) := X"0000";
-	signal dutylow :	unsigned(15 downto 0) := X"0000";
-	signal calchigh :	unsigned(23 downto 0) := X"000000";
-	signal interhigh :  unsigned(23 downto 0) := X"000000";
-	signal count :	    unsigned(15 downto 0) := X"0001";
-	signal temporal :	STD_LOGIC := '0';
-	signal t_flag : STD_LOGIC := '0';
-	signal regpulse : unsigned(15 downto 0) := X"0000";
+	signal dutyhigh  : unsigned(15 downto 0)   := (others => '0');
+	signal dutylow   : unsigned(15 downto 0)   := (others => '0');
+	signal calchigh  : unsigned(23 downto 0)   := (others => '0');
+	signal interhigh : unsigned(23 downto 0) := (others => '0');
+	signal count     : unsigned(15 downto 0) := (0 => '1', others => '0');
+	signal temporal  : STD_LOGIC := '0';
+	signal t_flag    : STD_LOGIC := '0';
+	signal regpulse  : unsigned(15 downto 0) := (others => '0');
 
 begin
 	-- Generates a tick count based on the Duty cycle
 	COUNT_GEN : process(clk_125M) begin
 		if rising_edge(clk_125M) then
 			if rst = '1' then
-				dutyhigh <= X"0000";
-				dutylow <= X"0000";
+				dutyhigh <= (others => '0');
+				dutylow <= (others => '0');
 			else
 			   if sclr = '1' then
-			       dutyhigh <= X"0000";
-			       dutylow<= X"0000";
+			       dutyhigh <= (others => '0');
+			       dutylow<= (others => '0');
 			   end if;
 			   
 				calchigh <= pulse_cnt * duty_cycle;
@@ -89,7 +89,7 @@ begin
 	           if dutyhigh > count and regpulse /= pulse_cnt then
 	               count <= X"0001";
 	           else
-	               count <= count + X"0001";
+	               count <= count + 1;
 	           end if;
 	       else
 	           count <= X"0001";
